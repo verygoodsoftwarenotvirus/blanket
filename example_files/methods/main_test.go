@@ -4,14 +4,18 @@ import (
 	"testing"
 )
 
+var (
+	f Example
+	g Example
+)
+
 func TestA(t *testing.T) {
-	e := &Example{}
+	var e Example
 	e.A()
 }
 
 func TestC(t *testing.T) {
-	e := &Example{}
-	e.C()
+	g.C()
 }
 
 func TestOuter(t *testing.T) {

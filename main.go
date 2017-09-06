@@ -27,26 +27,60 @@ func dirExists(path string) (bool, error) {
 
 func getDeclaredNames(in *ast.File, out *set.Set) {
 	for _, x := range in.Decls {
-		switch n := x.(type) {
+		switch f := x.(type) {
 		case *ast.FuncDecl:
-			out.Add(n.Name.Name) // "Avoid Stutter" lol
+			functionName := f.Name.Name // "Avoid Stutter" lol
+			var parentName string
+			if f.Recv != nil && len(f.Recv.List) == 1 {
+				r := f.Recv.List[0]
+				parentName = r.Type.(*ast.StarExpr).X.(*ast.Ident).Name
+			}
+
+			if parentName != "" {
+				out.Add(fmt.Sprintf("%s.%s", parentName, functionName))
+			} else {
+				out.Add(functionName)
+			}
 		}
 	}
 }
 
 func getCalledNames(in *ast.File, out *set.Set) {
 	// Using switches here to avoid panics, this is probably wrong and bad but ¯\_(ツ)_/¯
+	nameToTypeMap := map[string]string{}
 	for _, x := range in.Decls {
 		switch n := x.(type) {
+		case *ast.GenDecl:
+			for _, spec := range n.Specs {
+				switch global := spec.(type) {
+				case *ast.ValueSpec: // for things like `var e Example` declared outside of functions
+					varName := global.Names[0].Name
+					typeName := global.Type.(*ast.Ident).Name
+					nameToTypeMap[varName] = typeName
+				}
+			}
 		case *ast.FuncDecl:
 			for _, le := range n.Body.List {
+				use(nameToTypeMap)
 				switch e := le.(type) {
-				case *ast.ExprStmt:
+				case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
+					varName := e.Lhs[0].(*ast.Ident).Name
+					typeName := e.Rhs[0].(*ast.UnaryExpr).X.(*ast.CompositeLit).Type.(*ast.Ident).Name
+					nameToTypeMap[varName] = typeName
+				case *ast.DeclStmt: // handles things like `var e Example`
+					varName := e.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name
+					typeName := e.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(*ast.Ident).Name
+					nameToTypeMap[varName] = typeName
+				case *ast.ExprStmt: // handles function calls
 					switch c := e.X.(type) {
 					case *ast.CallExpr:
 						switch f := c.Fun.(type) {
 						case *ast.Ident:
 							out.Add(f.Name)
+						case *ast.SelectorExpr:
+							structVarName := f.X.(*ast.Ident).Name
+							calledMethodName := f.Sel.Name
+							out.Add(fmt.Sprintf("%s.%s", nameToTypeMap[structVarName], calledMethodName))
 						}
 					}
 				}
@@ -91,9 +125,7 @@ func main() {
 			}
 		}
 	}
-
-	difference := set.Difference(declaredFuncs, calledFuncs)
-	diff := set.StringSlice(difference)
+	diff := set.StringSlice(set.Difference(declaredFuncs, calledFuncs))
 
 	if opts.FailOnExtras && len(diff) > 0 {
 		errorString := fmt.Sprintf(`The following functions are declared but not called in any tests:
