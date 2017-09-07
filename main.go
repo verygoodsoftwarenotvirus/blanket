@@ -13,18 +13,6 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-func use(...interface{}) {
-	return
-}
-
-func dirExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return err == nil, err
-}
-
 func getDeclaredNames(in *ast.File, out *set.Set) {
 	for _, x := range in.Decls {
 		switch f := x.(type) {
@@ -61,7 +49,6 @@ func getCalledNames(in *ast.File, out *set.Set) {
 			}
 		case *ast.FuncDecl:
 			for _, le := range n.Body.List {
-				use(nameToTypeMap)
 				switch e := le.(type) {
 				case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
 					varName := e.Lhs[0].(*ast.Ident).Name
