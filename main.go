@@ -19,7 +19,7 @@ func getDeclaredNames(in *ast.File, out *set.Set) {
 		case *ast.FuncDecl:
 			functionName := f.Name.Name // "Avoid Stutter" lol
 			var parentName string
-			if f.Recv != nil && len(f.Recv.List) == 1 {
+			if f.Recv != nil && len(f.Recv.List) == 1 { // handles things like `type Example struct`
 				r := f.Recv.List[0]
 				parentName = r.Type.(*ast.StarExpr).X.(*ast.Ident).Name
 			}
