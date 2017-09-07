@@ -62,7 +62,7 @@ func TestSimplePackage(t *testing.T) {
 	originalArgs := os.Args
 	os.Args = []string{
 		originalArgs[0],
-		"--package=github.com/verygoodsoftwarenotvirus/veneer/example_packages/simple",
+		"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple",
 	}
 
 	main()
@@ -101,7 +101,7 @@ func TestSimplePackageFailsWhenArgsInstructItTo(t *testing.T) {
 	originalArgs := os.Args
 	os.Args = []string{
 		originalArgs[0],
-		"--package=github.com/verygoodsoftwarenotvirus/veneer/example_packages/simple",
+		"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple",
 		"--fail-on-extras",
 	}
 
