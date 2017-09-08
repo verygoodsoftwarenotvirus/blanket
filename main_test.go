@@ -51,8 +51,28 @@ func TestGetDeclaredNamesWithStructMethods(t *testing.T) {
 	}
 
 	actual := set.New()
-
 	getDeclaredNames(in, actual)
+
+	assert.Equal(t, expected, actual, "expected output did not match actual output")
+}
+
+func TestGetCalledNamesWithStructMethods(t *testing.T) {
+	t.Parallel()
+
+	in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
+	if err != nil {
+		t.Logf("failing because ParseFile returned error: %v", err)
+		t.FailNow()
+	}
+
+	expectedDeclarations := []string{".Parallel", "Example.A", "Example.C", "outer"}
+	expected := set.New()
+	for _, x := range expectedDeclarations {
+		expected.Add(x)
+	}
+
+	actual := set.New()
+	getCalledNames(in, actual)
 
 	assert.Equal(t, expected, actual, "expected output did not match actual output")
 }
@@ -126,6 +146,9 @@ func TestMainFailsWhenCodeAnalyzedIsInvalid(t *testing.T) {
 }
 
 func TestMainFailsArgumentsAreInvalid(t *testing.T) {
+	originalArgs := os.Args
+	os.Args = []string{originalArgs[0]}
+
 	defer func() {
 		if r := recover(); r != nil {
 			// recovered from our monkey patched log.Fatal
@@ -141,7 +164,8 @@ func TestMainFailsArgumentsAreInvalid(t *testing.T) {
 
 	main()
 	assert.True(t, fatalCalled, "main should call log.Fatal when --fail-on-extras is passed in and extras are found")
-	monkey.Unpatch(os.Exit)
+	os.Args = originalArgs
+	monkey.Unpatch(log.Fatal)
 }
 
 func TestSimplePackageFailsWhenArgsInstructItTo(t *testing.T) {
