@@ -84,7 +84,7 @@ func main() {
 	}
 	_, err := flags.Parse(&opts)
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	pkgDir := strings.Join([]string{gopath, "src", opts.Package}, "/")

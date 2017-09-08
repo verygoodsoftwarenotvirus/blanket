@@ -11,7 +11,6 @@ import (
 	"github.com/bouk/monkey"
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
-
 )
 
 func TestGetDeclaredNamesWithSimpleFunctions(t *testing.T) {
@@ -58,7 +57,7 @@ func TestGetDeclaredNamesWithStructMethods(t *testing.T) {
 	assert.Equal(t, expected, actual, "expected output did not match actual output")
 }
 
-func TestSimplePackage(t *testing.T) {
+func TestMainOperatesAsExpected(t *testing.T) {
 	originalArgs := os.Args
 	os.Args = []string{
 		originalArgs[0],
@@ -87,14 +86,62 @@ func TestMainFailsWhenPackageIsNonexistent(t *testing.T) {
 	var fatalfCalled bool
 	monkey.Patch(log.Fatalf, func(string, ...interface{}) {
 		fatalfCalled = true
-		panic("hi")
+		panic("log.Fatalf")
 	})
 
 	main()
-	assert.True(t, fatalfCalled, "main should call log.Fatal() when --fail-on-extras is passed in and extras are found")
+	assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-extras is passed in and extras are found")
 
 	os.Args = originalArgs
 	monkey.Unpatch(log.Fatalf)
+}
+
+func TestMainFailsWhenCodeAnalyzedIsInvalid(t *testing.T) {
+	originalArgs := os.Args
+	os.Args = []string{
+		originalArgs[0],
+		"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/invalid",
+		"--fail-on-extras",
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			// recovered from our monkey patched log.Fatal
+			assert.True(t, true)
+		}
+	}()
+
+	var fatalCalled bool
+	monkey.Patch(log.Fatal, func(...interface{}) {
+		fatalCalled = true
+		panic("log.Fatal")
+	})
+
+	main()
+
+	assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-extras is passed in and extras are found")
+
+	os.Args = originalArgs
+	monkey.Unpatch(log.Fatal)
+}
+
+func TestMainFailsArgumentsAreInvalid(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			// recovered from our monkey patched log.Fatal
+			assert.True(t, true)
+		}
+	}()
+
+	var fatalCalled bool
+	monkey.Patch(log.Fatal, func(...interface{}) {
+		fatalCalled = true
+		panic("log.Fatal")
+	})
+
+	main()
+	assert.True(t, fatalCalled, "main should call log.Fatal when --fail-on-extras is passed in and extras are found")
+	monkey.Unpatch(os.Exit)
 }
 
 func TestSimplePackageFailsWhenArgsInstructItTo(t *testing.T) {
