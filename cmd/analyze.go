@@ -108,7 +108,10 @@ func analyze(_ *cobra.Command, _ []string) {
 		log.Fatal(err)
 	}
 
-	log.Println(len(astPkg))
+	if len(astPkg) == 0 {
+		log.Fatal("No go files found!")
+	}
+
 	declaredFuncs := set.New()
 	calledFuncs := set.New()
 
