@@ -16,8 +16,8 @@
 
 /*
 Test Summary:
-NOTE: For each test, a nil pointer, a single pointer and double pointer to the
-base test element are also tested to ensure proper indirection across all types.
+NOTE: For each temp, a nil pointer, a single pointer and double pointer to the
+base temp element are also tested to ensure proper indirection across all types.
 
 - Max int8, int16, int32, int64, int
 - Max uint8, uint16, uint32, uint64, uint
@@ -75,7 +75,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-// formatterTest is used to describe a test to be performed against NewFormatter.
+// formatterTest is used to describe a temp to be performed against NewFormatter.
 type formatterTest struct {
 	format string
 	in     interface{}
@@ -692,13 +692,13 @@ func addSliceFormatterTests() {
 
 func addStringFormatterTests() {
 	// Standard string.
-	v := "test"
+	v := "temp"
 	nv := (*string)(nil)
 	pv := &v
 	vAddr := fmt.Sprintf("%p", pv)
 	pvAddr := fmt.Sprintf("%p", &pv)
 	vt := "string"
-	vs := "test"
+	vs := "temp"
 	addFormatterTest("%v", v, vs)
 	addFormatterTest("%v", pv, "<*>"+vs)
 	addFormatterTest("%v", &pv, "<**>"+vs)
@@ -959,26 +959,26 @@ func addStructFormatterTests() {
 		s pstringer
 		S pstringer
 	}
-	v3 := s3{"test", "test2"}
+	v3 := s3{"temp", "test2"}
 	nv3 := (*s3)(nil)
 	pv3 := &v3
 	v3Addr := fmt.Sprintf("%p", pv3)
 	pv3Addr := fmt.Sprintf("%p", &pv3)
 	v3t := "spew_test.s3"
 	v3t2 := "spew_test.pstringer"
-	v3s := "{stringer test stringer test2}"
+	v3s := "{stringer temp stringer test2}"
 	v3sp := v3s
-	v3s2 := "{s:stringer test S:stringer test2}"
+	v3s2 := "{s:stringer temp S:stringer test2}"
 	v3s2p := v3s2
-	v3s3 := "{s:(" + v3t2 + ")stringer test S:(" + v3t2 + ")stringer test2}"
+	v3s3 := "{s:(" + v3t2 + ")stringer temp S:(" + v3t2 + ")stringer test2}"
 	v3s3p := v3s3
 	if spew.UnsafeDisabled {
-		v3s = "{test test2}"
-		v3sp = "{test stringer test2}"
-		v3s2 = "{s:test S:test2}"
-		v3s2p = "{s:test S:stringer test2}"
-		v3s3 = "{s:(" + v3t2 + ")test S:(" + v3t2 + ")test2}"
-		v3s3p = "{s:(" + v3t2 + ")test S:(" + v3t2 + ")stringer test2}"
+		v3s = "{temp test2}"
+		v3sp = "{temp stringer test2}"
+		v3s2 = "{s:temp S:test2}"
+		v3s2p = "{s:temp S:stringer test2}"
+		v3s3 = "{s:(" + v3t2 + ")temp S:(" + v3t2 + ")test2}"
+		v3s3p = "{s:(" + v3t2 + ")temp S:(" + v3t2 + ")stringer test2}"
 	}
 	addFormatterTest("%v", v3, v3s)
 	addFormatterTest("%v", pv3, "<*>"+v3sp)
@@ -1375,7 +1375,7 @@ func addPanicFormatterTests() {
 	vAddr := fmt.Sprintf("%p", pv)
 	pvAddr := fmt.Sprintf("%p", &pv)
 	vt := "spew_test.panicer"
-	vs := "(PANIC=test panic)127"
+	vs := "(PANIC=temp panic)127"
 	addFormatterTest("%v", v, vs)
 	addFormatterTest("%v", pv, "<*>"+vs)
 	addFormatterTest("%v", &pv, "<**>"+vs)
@@ -1458,7 +1458,7 @@ func addPassthroughFormatterTests() {
 	addFormatterTest("%5d", 127, "  127")
 
 	// %q passthrough with string.
-	addFormatterTest("%q", "test", "\"test\"")
+	addFormatterTest("%q", "temp", "\"temp\"")
 }
 
 // TestFormatter executes all of the tests described by formatterTests.

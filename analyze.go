@@ -12,22 +12,114 @@ import (
 	"github.com/fatih/set"
 )
 
-func getDeclaredNames(in *ast.File, out *set.Set) {
-	for _, x := range in.Decls {
-		switch f := x.(type) {
-		case *ast.FuncDecl:
-			functionName := f.Name.Name // "Avoid Stutter" lol
-			var parentName string
-			if f.Recv != nil && len(f.Recv.List) == 1 { // handles things like `type Example struct`
-				r := f.Recv.List[0]
-				parentName = r.Type.(*ast.StarExpr).X.(*ast.Ident).Name
+func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, out *set.Set) {
+	switch f := in.Fun.(type) {
+	case *ast.Ident:
+		out.Add(f.Name)
+	case *ast.SelectorExpr:
+		structVarName := f.X.(*ast.Ident).Name
+		calledMethodName := f.Sel.Name
+		out.Add(fmt.Sprintf("%s.%s", nameToTypeMap[structVarName], calledMethodName))
+	}
+}
+
+func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string) {
+	switch u := in.X.(*ast.CompositeLit).Type.(type) {
+	case *ast.Ident:
+		nameToTypeMap[varName] = u.Name
+	}
+}
+
+func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
+	varName := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name
+	typeName := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(*ast.Ident).Name
+	nameToTypeMap[varName] = typeName
+}
+
+func parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, out *set.Set) {
+	switch c := in.X.(type) {
+	case *ast.CallExpr:
+		switch f := c.Fun.(type) {
+		case *ast.Ident:
+			out.Add(f.Name)
+		case *ast.SelectorExpr:
+			structVarName := f.X.(*ast.Ident).Name
+			calledMethodName := f.Sel.Name
+			out.Add(fmt.Sprintf("%s.%s", nameToTypeMap[structVarName], calledMethodName))
+		}
+	}
+}
+
+func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
+	for _, spec := range in.Specs {
+		switch global := spec.(type) {
+		case *ast.ValueSpec: // for things like `var e Example` declared outside of functions
+			if len(global.Names) > 1 {
+				log.Println("wtf")
 			}
 
-			if parentName != "" {
-				out.Add(fmt.Sprintf("%s.%s", parentName, functionName))
-			} else {
-				out.Add(functionName)
+			varName := global.Names[0].Name
+			if global.Type != nil {
+				typeName := global.Type.(*ast.Ident).Name
+				nameToTypeMap[varName] = typeName
 			}
+		}
+	}
+}
+
+func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
+	functionName := f.Name.Name // "Avoid Stutter" lol
+	var parentName string
+	if f.Recv != nil {
+		for _, r := range f.Recv.List {
+			switch t := r.Type.(type) {
+			case *ast.StarExpr:
+				parentName = t.X.(*ast.Ident).Name
+			}
+		}
+	}
+
+	if parentName != "" {
+		out.Add(fmt.Sprintf("%s.%s", parentName, functionName))
+	} else {
+		out.Add(functionName)
+	}
+}
+
+func getDeclaredNamesFromFile(in *ast.File, out *set.Set) {
+	for _, x := range in.Decls {
+		getDeclaredNames(x, out)
+	}
+}
+
+func getDeclaredNames(in ast.Decl, out *set.Set) {
+	switch f := in.(type) {
+	case *ast.FuncDecl:
+		parseFuncDecl(f, out)
+	}
+}
+
+func getCalledNamesFromFunctionLiteral(in *ast.FuncLit, nameToTypeMap map[string]string, out *set.Set) {
+	for _, le := range in.Body.List {
+		switch e := le.(type) {
+		case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
+			varName := e.Lhs[0].(*ast.Ident).Name
+			if varName == "err" {
+				log.Println("")
+			}
+			switch t := e.Rhs[0].(type) {
+			case *ast.FuncLit:
+				print("")
+			case *ast.UnaryExpr:
+				parseUnaryExpr(t, varName, nameToTypeMap)
+			case *ast.CallExpr:
+				parseCallExpr(t, nameToTypeMap, out)
+			}
+
+		case *ast.DeclStmt: // handles things like `var e Example`
+			parseDeclStmt(e, nameToTypeMap)
+		case *ast.ExprStmt: // handles function calls
+			parseExprStmt(e, nameToTypeMap, out)
 		}
 	}
 }
@@ -38,37 +130,24 @@ func getCalledNames(in *ast.File, out *set.Set) {
 	for _, x := range in.Decls {
 		switch n := x.(type) {
 		case *ast.GenDecl:
-			for _, spec := range n.Specs {
-				switch global := spec.(type) {
-				case *ast.ValueSpec: // for things like `var e Example` declared outside of functions
-					varName := global.Names[0].Name
-					typeName := global.Type.(*ast.Ident).Name
-					nameToTypeMap[varName] = typeName
-				}
-			}
+			parseGenDecl(n, nameToTypeMap)
 		case *ast.FuncDecl:
 			for _, le := range n.Body.List {
 				switch e := le.(type) {
 				case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
 					varName := e.Lhs[0].(*ast.Ident).Name
-					typeName := e.Rhs[0].(*ast.UnaryExpr).X.(*ast.CompositeLit).Type.(*ast.Ident).Name
-					nameToTypeMap[varName] = typeName
-				case *ast.DeclStmt: // handles things like `var e Example`
-					varName := e.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name
-					typeName := e.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(*ast.Ident).Name
-					nameToTypeMap[varName] = typeName
-				case *ast.ExprStmt: // handles function calls
-					switch c := e.X.(type) {
+					switch t := e.Rhs[0].(type) {
+					case *ast.FuncLit:
+						getCalledNamesFromFunctionLiteral(t, nameToTypeMap, out)
+					case *ast.UnaryExpr:
+						parseUnaryExpr(t, varName, nameToTypeMap)
 					case *ast.CallExpr:
-						switch f := c.Fun.(type) {
-						case *ast.Ident:
-							out.Add(f.Name)
-						case *ast.SelectorExpr:
-							structVarName := f.X.(*ast.Ident).Name
-							calledMethodName := f.Sel.Name
-							out.Add(fmt.Sprintf("%s.%s", nameToTypeMap[structVarName], calledMethodName))
-						}
+						parseCallExpr(t, nameToTypeMap, out)
 					}
+				case *ast.DeclStmt: // handles things like `var e Example`
+					parseDeclStmt(e, nameToTypeMap)
+				case *ast.ExprStmt: // handles function calls
+					parseExprStmt(e, nameToTypeMap, out)
 				}
 			}
 		}
@@ -92,13 +171,17 @@ func analyze(analyzePackage string, failOnFinding bool) {
 	declaredFuncs := set.New()
 	calledFuncs := set.New()
 
+	if len(astPkg) == 0 {
+		log.Fatal("no go files found!")
+	}
+
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
 			isTest := strings.HasSuffix(name, "_test.go")
 			if isTest {
 				getCalledNames(f, calledFuncs)
 			} else {
-				getDeclaredNames(f, declaredFuncs)
+				getDeclaredNamesFromFile(f, declaredFuncs)
 			}
 		}
 	}

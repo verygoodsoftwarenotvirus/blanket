@@ -707,8 +707,8 @@ func (c *Command) ExecuteC() (cmd *Command, err error) {
 
 	var args []string
 
-	// Workaround FAIL with "go test -v" or "cobra.test -test.v", see #155
-	if c.args == nil && filepath.Base(os.Args[0]) != "cobra.test" {
+	// Workaround FAIL with "go temp -v" or "cobra.temp -temp.v", see #155
+	if c.args == nil && filepath.Base(os.Args[0]) != "cobra.temp" {
 		args = os.Args[1:]
 	} else {
 		args = c.args

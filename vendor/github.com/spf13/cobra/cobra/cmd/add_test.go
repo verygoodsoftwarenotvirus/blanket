@@ -11,7 +11,7 @@ import (
 )
 
 // TestGoldenAddCmd initializes the project "github.com/spf13/testproject"
-// in GOPATH, adds "test" command
+// in GOPATH, adds "temp" command
 // and compares the content of all files in cmd directory of testproject
 // with appropriate golden files.
 // Use -update to update existing golden files.
@@ -30,12 +30,12 @@ func TestGoldenAddCmd(t *testing.T) {
 	// Initialize the project first.
 	initializeProject(project)
 
-	// Then add the "test" command.
-	cmdName := "test"
+	// Then add the "temp" command.
+	cmdName := "temp"
 	cmdPath := filepath.Join(project.CmdPath(), cmdName+".go")
 	createCmdFile(project.License(), cmdPath, cmdName)
 
-	expectedFiles := []string{".", "root.go", "test.go"}
+	expectedFiles := []string{".", "root.go", "temp.go"}
 	gotFiles := []string{}
 
 	// Check project file hierarchy and compare the content of every single file
@@ -61,7 +61,7 @@ func TestGoldenAddCmd(t *testing.T) {
 		case ".":
 			return nil
 		// Known files.
-		case "root.go", "test.go":
+		case "root.go", "temp.go":
 			if *update {
 				got, err := ioutil.ReadFile(path)
 				if err != nil {

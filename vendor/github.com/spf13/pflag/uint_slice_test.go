@@ -8,13 +8,13 @@ import (
 )
 
 func setUpUISFlagSet(uisp *[]uint) *FlagSet {
-	f := NewFlagSet("test", ContinueOnError)
+	f := NewFlagSet("temp", ContinueOnError)
 	f.UintSliceVar(uisp, "uis", []uint{}, "Command separated list!")
 	return f
 }
 
 func setUpUISFlagSetWithDefault(uisp *[]uint) *FlagSet {
-	f := NewFlagSet("test", ContinueOnError)
+	f := NewFlagSet("temp", ContinueOnError)
 	f.UintSliceVar(uisp, "uis", []uint{0, 1}, "Command separated list!")
 	return f
 }

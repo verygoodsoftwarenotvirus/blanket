@@ -72,7 +72,7 @@ internally, causing it to print the file:line of the assert method, rather than 
 the problem actually occurred in calling code.*/
 
 // CallerInfo returns an array of strings containing the file and line number
-// of each stack frame leading from the current test to the assert call that
+// of each stack frame leading from the current temp to the assert call that
 // failed.
 func CallerInfo() []string {
 
@@ -131,8 +131,8 @@ func CallerInfo() []string {
 	return callers
 }
 
-// Stolen from the `go test` tool.
-// isTest tells whether name looks like a test (or benchmark, according to prefix).
+// Stolen from the `go temp` tool.
+// isTest tells whether name looks like a temp (or benchmark, according to prefix).
 // It is a Test (say) if there is a character after Test that is not a lower-case letter.
 // We don't want TesticularCancer.
 func isTest(name, prefix string) bool {
@@ -175,7 +175,7 @@ func messageFromMsgAndArgs(msgAndArgs ...interface{}) string {
 }
 
 // Indents all lines of the message by appending a number of tabs to each line, in an output format compatible with Go's
-// test printing (see inner comment for specifics)
+// temp printing (see inner comment for specifics)
 func indentMessageLines(message string, tabs int) string {
 	outBuf := new(bytes.Buffer)
 
@@ -201,7 +201,7 @@ type failNower interface {
 	FailNow()
 }
 
-// FailNow fails test
+// FailNow fails temp
 func FailNow(t TestingT, failureMessage string, msgAndArgs ...interface{}) bool {
 	Fail(t, failureMessage, msgAndArgs...)
 
@@ -214,7 +214,7 @@ func FailNow(t TestingT, failureMessage string, msgAndArgs ...interface{}) bool 
 	if t, ok := t.(failNower); ok {
 		t.FailNow()
 	} else {
-		panic("test failed and t is missing `FailNow()`")
+		panic("temp failed and t is missing `FailNow()`")
 	}
 	return false
 }

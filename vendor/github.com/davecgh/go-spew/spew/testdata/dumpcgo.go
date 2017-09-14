@@ -13,9 +13,9 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 // NOTE: Due to the following build constraints, this file will only be compiled
-// when both cgo is supported and "-tags testcgo" is added to the go test
+// when both cgo is supported and "-tags testcgo" is added to the go temp
 // command line.  This code should really only be in the dumpcgo_test.go file,
-// but unfortunately Go will not allow cgo in test files, so this is a
+// but unfortunately Go will not allow cgo in temp files, so this is a
 // workaround to allow cgo types to be tested.  This configuration is used
 // because spew itself does not require cgo to run even though it does handle
 // certain cgo types specially.  Rather than forcing all clients to require cgo

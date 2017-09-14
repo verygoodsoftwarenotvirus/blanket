@@ -148,7 +148,7 @@ func TestGenManTree(t *testing.T) {
 		Use: "do [OPTIONS] arg1 arg2",
 	}
 	header := &GenManHeader{Section: "2"}
-	tmpdir, err := ioutil.TempDir("", "test-gen-man-tree")
+	tmpdir, err := ioutil.TempDir("", "temp-gen-man-tree")
 	if err != nil {
 		t.Fatalf("Failed to create tmpdir: %s", err.Error())
 	}

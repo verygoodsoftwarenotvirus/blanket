@@ -92,7 +92,7 @@ func TestGenYamlTree(t *testing.T) {
 		Use: "do [OPTIONS] arg1 arg2",
 	}
 
-	tmpdir, err := ioutil.TempDir("", "test-gen-yaml-tree")
+	tmpdir, err := ioutil.TempDir("", "temp-gen-yaml-tree")
 	if err != nil {
 		t.Fatalf("Failed to create tmpdir: %s", err.Error())
 	}

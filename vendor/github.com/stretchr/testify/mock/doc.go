@@ -4,7 +4,7 @@
 // Example Usage
 //
 // The mock package provides an object, Mock, that tracks activity on another object.  It is usually
-// embedded into a test object as shown below:
+// embedded into a temp object as shown below:
 //
 //   type MyTestObject struct {
 //     // add a Mock object instance

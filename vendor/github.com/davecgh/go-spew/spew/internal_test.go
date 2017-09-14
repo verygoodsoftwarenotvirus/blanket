@@ -15,8 +15,8 @@
  */
 
 /*
-This test file is part of the spew package rather than than the spew_test
-package because it needs access to internals to properly test certain cases
+This temp file is part of the spew package rather than than the spew_test
+package because it needs access to internals to properly temp certain cases
 which are not possible via the public interface since they should never happen.
 */
 
@@ -80,7 +80,7 @@ func TestInvalidReflectValue(t *testing.T) {
 	}
 }
 
-// SortValues makes the internal sortValues function available to the test
+// SortValues makes the internal sortValues function available to the temp
 // package.
 func SortValues(values []reflect.Value, cs *ConfigState) {
 	sortValues(values, cs)

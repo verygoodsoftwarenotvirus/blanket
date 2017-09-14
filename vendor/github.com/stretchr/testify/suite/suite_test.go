@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// SuiteRequireTwice is intended to test the usage of suite.Require in two
+// SuiteRequireTwice is intended to temp the usage of suite.Require in two
 // different tests
 type SuiteRequireTwice struct{ Suite }
 
@@ -90,18 +90,18 @@ func (suite *SuiteSkipTester) TearDownSuite() {
 	suite.TearDownSuiteRunCount++
 }
 
-// The SetupTest method will be run before every test in the suite.
+// The SetupTest method will be run before every temp in the suite.
 func (suite *SuiteTester) SetupTest() {
 	suite.SetupTestRunCount++
 }
 
-// The TearDownTest method will be run after every test in the suite.
+// The TearDownTest method will be run after every temp in the suite.
 func (suite *SuiteTester) TearDownTest() {
 	suite.TearDownTestRunCount++
 }
 
 // Every method in a testing suite that begins with "Test" will be run
-// as a test.  TestOne is an example of a test.  For the purposes of
+// as a temp.  TestOne is an example of a temp.  For the purposes of
 // this example, we've included assertions in the tests, since most
 // tests will issue assertions.
 func (suite *SuiteTester) TestOne() {
@@ -111,7 +111,7 @@ func (suite *SuiteTester) TestOne() {
 	suite.Equal(suite.TestOneRunCount, beforeCount+1)
 }
 
-// TestTwo is another example of a test.
+// TestTwo is another example of a temp.
 func (suite *SuiteTester) TestTwo() {
 	beforeCount := suite.TestTwoRunCount
 	suite.TestTwoRunCount++
@@ -124,19 +124,19 @@ func (suite *SuiteTester) TestSkip() {
 }
 
 // NonTestMethod does not begin with "Test", so it will not be run by
-// testify as a test in the suite.  This is useful for creating helper
+// testify as a temp in the suite.  This is useful for creating helper
 // methods for your tests.
 func (suite *SuiteTester) NonTestMethod() {
 	suite.NonTestMethodRunCount++
 }
 
-// TestRunSuite will be run by the 'go test' command, so within it, we
+// TestRunSuite will be run by the 'go temp' command, so within it, we
 // can run our suite using the Run(*testing.T, TestingSuite) function.
 func TestRunSuite(t *testing.T) {
 	suiteTester := new(SuiteTester)
 	Run(t, suiteTester)
 
-	// Normally, the test would end here.  The following are simply
+	// Normally, the temp would end here.  The following are simply
 	// some assertions to ensure that the Run function is working as
 	// intended - they are not part of the example.
 
@@ -145,17 +145,17 @@ func TestRunSuite(t *testing.T) {
 	assert.Equal(t, suiteTester.SetupSuiteRunCount, 1)
 	assert.Equal(t, suiteTester.TearDownSuiteRunCount, 1)
 
-	// There are three test methods (TestOne, TestTwo, and TestSkip), so
+	// There are three temp methods (TestOne, TestTwo, and TestSkip), so
 	// the SetupTest and TearDownTest methods (which should be run once for
-	// each test) should have been run three times.
+	// each temp) should have been run three times.
 	assert.Equal(t, suiteTester.SetupTestRunCount, 3)
 	assert.Equal(t, suiteTester.TearDownTestRunCount, 3)
 
-	// Each test should have been run once.
+	// Each temp should have been run once.
 	assert.Equal(t, suiteTester.TestOneRunCount, 1)
 	assert.Equal(t, suiteTester.TestTwoRunCount, 1)
 
-	// Methods that don't match the test method identifier shouldn't
+	// Methods that don't match the temp method identifier shouldn't
 	// have been run at all.
 	assert.Equal(t, suiteTester.NonTestMethodRunCount, 0)
 

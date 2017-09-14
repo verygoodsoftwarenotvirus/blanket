@@ -23,7 +23,7 @@ func TestCAgain(t *testing.T) {
 	f.C()
 }
 
-func TestOuter(t *testing.T) {
+func TestWrapper(t *testing.T) {
 	e := &Example{}
-	outer(e)
+	wrapper(e)
 }

@@ -8,13 +8,13 @@ import (
 )
 
 func setUpIPSFlagSet(ipsp *[]net.IP) *FlagSet {
-	f := NewFlagSet("test", ContinueOnError)
+	f := NewFlagSet("temp", ContinueOnError)
 	f.IPSliceVar(ipsp, "ips", []net.IP{}, "Command separated list!")
 	return f
 }
 
 func setUpIPSFlagSetWithDefault(ipsp *[]net.IP) *FlagSet {
-	f := NewFlagSet("test", ContinueOnError)
+	f := NewFlagSet("temp", ContinueOnError)
 	f.IPSliceVar(ipsp, "ips",
 		[]net.IP{
 			net.ParseIP("192.168.1.1"),
@@ -215,7 +215,7 @@ func TestIPSBadQuoting(t *testing.T) {
 
 		for j, b := range ips {
 			if !b.Equal(test.Want[j]) {
-				t.Fatalf("bad value parsed for test %d on net.IP %d:\nwant:\t%s\ngot:\t%s", i, j, test.Want[j], b)
+				t.Fatalf("bad value parsed for temp %d on net.IP %d:\nwant:\t%s\ngot:\t%s", i, j, test.Want[j], b)
 			}
 		}
 	}

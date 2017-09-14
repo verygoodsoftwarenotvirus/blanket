@@ -8,7 +8,7 @@ import (
 )
 
 func setUpIP(ip *net.IP) *FlagSet {
-	f := NewFlagSet("test", ContinueOnError)
+	f := NewFlagSet("temp", ContinueOnError)
 	f.IPVar(ip, "address", net.ParseIP("0.0.0.0"), "IP Address")
 	return f
 }
