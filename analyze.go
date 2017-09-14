@@ -71,12 +71,13 @@ func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
 	functionName := f.Name.Name // "Avoid Stutter" lol
 	var parentName string
 	if f.Recv != nil {
-		for _, r := range f.Recv.List {
-			switch t := r.Type.(type) {
-			case *ast.StarExpr:
-				parentName = t.X.(*ast.Ident).Name
-			}
-		}
+		parentName = f.Recv.List[0].Type.(*ast.StarExpr).X.(*ast.Ident).Name
+		//for _, r := range f.Recv.List {
+		//	switch t := r.Type.(type) {
+		//	case *ast.StarExpr:
+		//		parentName = t.X.(*ast.Ident).Name
+		//	}
+		//}
 	}
 
 	if parentName != "" {
@@ -104,12 +105,7 @@ func getCalledNamesFromFunctionLiteral(in *ast.FuncLit, nameToTypeMap map[string
 		switch e := le.(type) {
 		case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
 			varName := e.Lhs[0].(*ast.Ident).Name
-			if varName == "err" {
-				log.Println("")
-			}
 			switch t := e.Rhs[0].(type) {
-			case *ast.FuncLit:
-				print("")
 			case *ast.UnaryExpr:
 				parseUnaryExpr(t, varName, nameToTypeMap)
 			case *ast.CallExpr:
@@ -124,31 +120,44 @@ func getCalledNamesFromFunctionLiteral(in *ast.FuncLit, nameToTypeMap map[string
 	}
 }
 
+func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, out *set.Set) {
+		switch e := in.(type) {
+		case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
+			varName := e.Lhs[0].(*ast.Ident).Name
+			switch t := e.Rhs[0].(type) {
+			case *ast.FuncLit:
+				getCalledNamesFromFunctionLiteral(t, nameToTypeMap, out)
+			case *ast.UnaryExpr:
+				parseUnaryExpr(t, varName, nameToTypeMap)
+			case *ast.CallExpr:
+				parseCallExpr(t, nameToTypeMap, out)
+			}
+		case *ast.RangeStmt:
+			for _, x := range e.Body.List {
+				parseStmt(x, nameToTypeMap, out)
+			}
+		case *ast.IfStmt:
+			for _, x := range e.Body.List{
+				parseStmt(x, nameToTypeMap, out)
+			}
+		case *ast.DeclStmt: // handles things like `var e Example`
+			parseDeclStmt(e, nameToTypeMap)
+		case *ast.ExprStmt: // handles function calls
+			parseExprStmt(e, nameToTypeMap, out)
+		}
+}
+
 func getCalledNames(in *ast.File, out *set.Set) {
 	// Using switches here to avoid panics, this is probably wrong and bad but ¯\_(ツ)_/¯
 	nameToTypeMap := map[string]string{}
-	for _, x := range in.Decls {
-		switch n := x.(type) {
+	for _, d := range in.Decls {
+		switch n := d.(type) {
 		case *ast.GenDecl:
 			parseGenDecl(n, nameToTypeMap)
 		case *ast.FuncDecl:
+			// functionName := n.Name.Name
 			for _, le := range n.Body.List {
-				switch e := le.(type) {
-				case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
-					varName := e.Lhs[0].(*ast.Ident).Name
-					switch t := e.Rhs[0].(type) {
-					case *ast.FuncLit:
-						getCalledNamesFromFunctionLiteral(t, nameToTypeMap, out)
-					case *ast.UnaryExpr:
-						parseUnaryExpr(t, varName, nameToTypeMap)
-					case *ast.CallExpr:
-						parseCallExpr(t, nameToTypeMap, out)
-					}
-				case *ast.DeclStmt: // handles things like `var e Example`
-					parseDeclStmt(e, nameToTypeMap)
-				case *ast.ExprStmt: // handles function calls
-					parseExprStmt(e, nameToTypeMap, out)
-				}
+				parseStmt(le, nameToTypeMap, out)
 			}
 		}
 	}
@@ -186,11 +195,13 @@ func analyze(analyzePackage string, failOnFinding bool) {
 		}
 	}
 	diff := set.StringSlice(set.Difference(declaredFuncs, calledFuncs))
-
-	if failOnFinding && len(diff) > 0 {
-		errorString := fmt.Sprintf(`The following functions are declared but not called in any tests:
+	diffReport := fmt.Sprintf(`The following functions are declared but not called in any tests:
 %s
 	`, strings.Join(diff, ",\n\t"))
-		log.Fatal(errorString)
+
+	if failOnFinding && len(diff) > 0 {
+		log.Fatal(diffReport)
+	} else {
+		log.Println(diffReport)
 	}
 }

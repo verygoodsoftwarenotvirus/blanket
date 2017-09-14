@@ -2,7 +2,6 @@ package dairyclient
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -23,6 +22,17 @@ const (
 type subtest struct {
 	Message string
 	Test    func(t *testing.T)
+}
+
+func handlerGenerator(handlers map[string]func(res http.ResponseWriter, req *http.Request)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for path, handlerFunc := range handlers {
+			if r.URL.Path == path {
+				handlerFunc(w, r)
+				return
+			}
+		}
+	})
 }
 
 func runSubtestSuite(t *testing.T, tests []subtest) {
@@ -47,6 +57,73 @@ func createInternalClient(t *testing.T, ts *httptest.Server) *V1Client {
 		URL: u,
 	}
 	return c
+}
+
+func TestUnexportedBuildURL(t *testing.T) {
+	ts := httptest.NewTLSServer(http.NotFoundHandler())
+	defer ts.Close()
+	c := createInternalClient(t, ts)
+
+	testCases := []struct {
+		query    map[string][]string
+		parts    []string
+		expected string
+	}{
+		{
+			query:    nil,
+			parts:    []string{""},
+			expected: fmt.Sprintf("%s/v1/", ts.URL),
+		},
+		{
+			query:    nil,
+			parts:    []string{"things", "and", "stuff"},
+			expected: fmt.Sprintf("%s/v1/things/and/stuff", ts.URL),
+		},
+		{
+			query:    map[string][]string{"param": {"value"}},
+			parts:    []string{"example"},
+			expected: fmt.Sprintf("%s/v1/example?param=value", ts.URL),
+		},
+	}
+
+	for _, tc := range testCases {
+		actual := c.buildURL(tc.query, tc.parts...)
+		assert.Equal(t, tc.expected, actual, "expected and actual built URLs don't match")
+	}
+}
+
+func TestExecuteRequestAddsCookieToRequests(t *testing.T) {
+	t.Parallel()
+	var endpointCalled bool
+	exampleEndpoint := "/v1/whatever"
+
+	handlers := map[string]func(res http.ResponseWriter, req *http.Request){
+		exampleEndpoint: func(res http.ResponseWriter, req *http.Request) {
+			endpointCalled = true
+			cookies := req.Cookies()
+			if len(cookies) == 0 {
+				assert.FailNow(t, "no cookies attached to the request")
+			}
+
+			cookieFound := false
+			for _, c := range cookies {
+				if c.Name == "dairycart" {
+					cookieFound = true
+				}
+			}
+			assert.True(t, cookieFound)
+		},
+	}
+
+	ts := httptest.NewTLSServer(handlerGenerator(handlers))
+	defer ts.Close()
+	c := createInternalClient(t, ts)
+
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", ts.URL, exampleEndpoint), nil)
+	assert.Nil(t, err, "no error should be returned when creating a new request")
+
+	c.executeRequest(req)
+	assert.True(t, endpointCalled, "endpoint should have been called")
 }
 
 func TestGet(t *testing.T) {
