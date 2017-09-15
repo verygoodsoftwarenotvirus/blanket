@@ -72,12 +72,6 @@ func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
 	var parentName string
 	if f.Recv != nil {
 		parentName = f.Recv.List[0].Type.(*ast.StarExpr).X.(*ast.Ident).Name
-		//for _, r := range f.Recv.List {
-		//	switch t := r.Type.(type) {
-		//	case *ast.StarExpr:
-		//		parentName = t.X.(*ast.Ident).Name
-		//	}
-		//}
 	}
 
 	if parentName != "" {
@@ -199,9 +193,11 @@ func analyze(analyzePackage string, failOnFinding bool) {
 %s
 	`, strings.Join(diff, ",\n\t"))
 
-	if failOnFinding && len(diff) > 0 {
-		log.Fatal(diffReport)
-	} else {
-		log.Println(diffReport)
+	if len(diff) > 0 {
+		if failOnFinding{
+			log.Fatal(diffReport)
+		} else {
+			log.Println(diffReport)
+		}
 	}
 }
