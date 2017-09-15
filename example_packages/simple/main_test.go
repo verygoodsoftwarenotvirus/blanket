@@ -12,6 +12,6 @@ func TestC(t *testing.T) {
 	C()
 }
 
-func TestOuter(t *testing.T) {
-	outer()
+func TestWrapper(t *testing.T) {
+	wrapper()
 }

@@ -19,8 +19,8 @@
 // +build !js,!appengine,!safe,!disableunsafe
 
 /*
-This test file is part of the spew package rather than than the spew_test
-package because it needs access to internals to properly test certain cases
+This temp file is part of the spew package rather than than the spew_test
+package because it needs access to internals to properly temp certain cases
 which are not possible via the public interface since they should never happen.
 */
 

@@ -14,7 +14,7 @@ func (e *Example) C() string {
 	return "C"
 }
 
-func outer(e *Example) {
+func wrapper(e *Example) {
 	e.A()
 	e.B()
 	e.C()

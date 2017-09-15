@@ -12,7 +12,7 @@ func C() string {
 	return "C"
 }
 
-func outer() {
+func wrapper() {
 	A()
 	B()
 	C()

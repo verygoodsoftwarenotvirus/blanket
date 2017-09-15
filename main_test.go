@@ -39,7 +39,7 @@ func runSubtestSuite(t *testing.T, tests []subtest) {
 //                                                    //
 ////////////////////////////////////////////////////////
 
-func TestGetDeclaredNames(t *testing.T) {
+func TestGetDeclaredNamesFromFile(t *testing.T) {
 	t.Parallel()
 
 	simple := func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"A", "B", "C", "outer"}
+		expectedDeclarations := []string{"A", "B", "C", "wrapper"}
 		expected := set.New()
 		for _, x := range expectedDeclarations {
 			expected.Add(x)
@@ -57,7 +57,7 @@ func TestGetDeclaredNames(t *testing.T) {
 
 		actual := set.New()
 
-		getDeclaredNames(in, actual)
+		getDeclaredNamesFromFile(in, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}
@@ -69,14 +69,14 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"Example.A", "Example.B", "Example.C", "outer"}
+		expectedDeclarations := []string{"Example.A", "Example.B", "Example.C", "wrapper"}
 		expected := set.New()
 		for _, x := range expectedDeclarations {
 			expected.Add(x)
 		}
 
 		actual := set.New()
-		getDeclaredNames(in, actual)
+		getDeclaredNamesFromFile(in, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}
@@ -102,7 +102,7 @@ func TestGetCalledNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"A", "C", "outer"}
+		expectedDeclarations := []string{"A", "C", "wrapper"}
 		expected := set.New()
 		for _, x := range expectedDeclarations {
 			expected.Add(x)
@@ -121,7 +121,7 @@ func TestGetCalledNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{".Parallel", "Example.A", "Example.C", "outer"}
+		expectedDeclarations := []string{".Parallel", "Example.A", "Example.C", "wrapper"}
 		expected := set.New()
 		for _, x := range expectedDeclarations {
 			expected.Add(x)
@@ -152,6 +152,7 @@ func TestMain(t *testing.T) {
 	optimal := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
+			"analyze",
 			"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple",
 		}
 
@@ -162,8 +163,9 @@ func TestMain(t *testing.T) {
 	nonexistentPackage := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
+			"analyze",
 			"--package=github.com/nosuchrealusername/absolutelynosuchpackage",
-			"--fail-on-extras",
+			"--fail-on-found",
 		}
 
 		defer func() {
@@ -180,7 +182,7 @@ func TestMain(t *testing.T) {
 		})
 
 		main()
-		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-extras is passed in and extras are found")
+		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-found is passed in and extras are found")
 
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatalf)
@@ -189,8 +191,9 @@ func TestMain(t *testing.T) {
 	invalidCode := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
+			"analyze",
 			"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/invalid",
-			"--fail-on-extras",
+			"--fail-on-found",
 		}
 
 		defer func() {
@@ -208,14 +211,17 @@ func TestMain(t *testing.T) {
 
 		main()
 
-		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-extras is passed in and extras are found")
+		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
 
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatal)
 	}
 
 	invalidArguments := func(t *testing.T) {
-		os.Args = []string{originalArgs[0]}
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+		}
 		defer func() {
 			if r := recover(); r != nil {
 				// recovered from our monkey patched log.Fatal
@@ -230,7 +236,7 @@ func TestMain(t *testing.T) {
 		})
 
 		main()
-		assert.True(t, fatalCalled, "main should call log.Fatal when --fail-on-extras is passed in and extras are found")
+		assert.True(t, fatalCalled, "main should call log.Fatal when invalid arguments are passed to analyze")
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatal)
 	}
@@ -238,8 +244,9 @@ func TestMain(t *testing.T) {
 	failsWhenInstructed := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
+			"analyze",
 			"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple",
-			"--fail-on-extras",
+			"--fail-on-found",
 		}
 
 		var fatalCalled bool
@@ -248,7 +255,7 @@ func TestMain(t *testing.T) {
 		})
 
 		main()
-		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-extras is passed in and extras are found")
+		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatal)
 	}
@@ -271,7 +278,7 @@ func TestMain(t *testing.T) {
 			Test:    invalidArguments,
 		},
 		{
-			Message: "fails with --fail-on-extras",
+			Message: "fails with --fail-on-found",
 			Test:    failsWhenInstructed,
 		},
 	}

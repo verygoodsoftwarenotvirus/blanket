@@ -80,8 +80,8 @@ func TestConvertToString(t *testing.T) {
 		4232,
 	}
 
-	p := NewNamedParser("test", Default)
-	grp, _ := p.AddGroup("test group", "", &opts)
+	p := NewNamedParser("temp", Default)
+	grp, _ := p.AddGroup("temp group", "", &opts)
 
 	expects := []string{
 		"string",
@@ -125,8 +125,8 @@ func TestConvertToStringInvalidIntBase(t *testing.T) {
 		2,
 	}
 
-	p := NewNamedParser("test", Default)
-	grp, _ := p.AddGroup("test group", "", &opts)
+	p := NewNamedParser("temp", Default)
+	grp, _ := p.AddGroup("temp group", "", &opts)
 	o := grp.Options()[0]
 
 	_, err := convertToString(o.value, o.tag)
@@ -145,8 +145,8 @@ func TestConvertToStringInvalidUintBase(t *testing.T) {
 		2,
 	}
 
-	p := NewNamedParser("test", Default)
-	grp, _ := p.AddGroup("test group", "", &opts)
+	p := NewNamedParser("temp", Default)
+	grp, _ := p.AddGroup("temp group", "", &opts)
 	o := grp.Options()[0]
 
 	_, err := convertToString(o.value, o.tag)

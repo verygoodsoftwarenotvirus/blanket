@@ -113,7 +113,7 @@ func (s *Set) Clear() {
 	s.m = make(map[interface{}]struct{})
 }
 
-// IsEqual test whether s and t are the same in size and have the same items.
+// IsEqual temp whether s and t are the same in size and have the same items.
 func (s *Set) IsEqual(t Interface) bool {
 	s.l.RLock()
 	defer s.l.RUnlock()
