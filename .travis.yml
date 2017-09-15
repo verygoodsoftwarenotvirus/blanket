@@ -13,6 +13,6 @@ script:
   # unit tests
   - go test -coverprofile=coverage.out
 
-# after_success:
-  # # send coverage report to coveralls
-  # - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+after_success:
+  # send coverage report to coveralls
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
