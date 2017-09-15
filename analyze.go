@@ -54,10 +54,6 @@ func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 	for _, spec := range in.Specs {
 		switch global := spec.(type) {
 		case *ast.ValueSpec: // for things like `var e Example` declared outside of functions
-			if len(global.Names) > 1 {
-				log.Println("wtf")
-			}
-
 			varName := global.Names[0].Name
 			if global.Type != nil {
 				typeName := global.Type.(*ast.Ident).Name
@@ -115,30 +111,30 @@ func getCalledNamesFromFunctionLiteral(in *ast.FuncLit, nameToTypeMap map[string
 }
 
 func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, out *set.Set) {
-		switch e := in.(type) {
-		case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
-			varName := e.Lhs[0].(*ast.Ident).Name
-			switch t := e.Rhs[0].(type) {
-			case *ast.FuncLit:
-				getCalledNamesFromFunctionLiteral(t, nameToTypeMap, out)
-			case *ast.UnaryExpr:
-				parseUnaryExpr(t, varName, nameToTypeMap)
-			case *ast.CallExpr:
-				parseCallExpr(t, nameToTypeMap, out)
-			}
-		case *ast.RangeStmt:
-			for _, x := range e.Body.List {
-				parseStmt(x, nameToTypeMap, out)
-			}
-		case *ast.IfStmt:
-			for _, x := range e.Body.List{
-				parseStmt(x, nameToTypeMap, out)
-			}
-		case *ast.DeclStmt: // handles things like `var e Example`
-			parseDeclStmt(e, nameToTypeMap)
-		case *ast.ExprStmt: // handles function calls
-			parseExprStmt(e, nameToTypeMap, out)
+	switch e := in.(type) {
+	case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
+		varName := e.Lhs[0].(*ast.Ident).Name
+		switch t := e.Rhs[0].(type) {
+		case *ast.FuncLit:
+			getCalledNamesFromFunctionLiteral(t, nameToTypeMap, out)
+		case *ast.UnaryExpr:
+			parseUnaryExpr(t, varName, nameToTypeMap)
+		case *ast.CallExpr:
+			parseCallExpr(t, nameToTypeMap, out)
 		}
+	case *ast.RangeStmt:
+		for _, x := range e.Body.List {
+			parseStmt(x, nameToTypeMap, out)
+		}
+	case *ast.IfStmt:
+		for _, x := range e.Body.List {
+			parseStmt(x, nameToTypeMap, out)
+		}
+	case *ast.DeclStmt: // handles things like `var e Example`
+		parseDeclStmt(e, nameToTypeMap)
+	case *ast.ExprStmt: // handles function calls
+		parseExprStmt(e, nameToTypeMap, out)
+	}
 }
 
 func getCalledNames(in *ast.File, out *set.Set) {
@@ -194,7 +190,7 @@ func analyze(analyzePackage string, failOnFinding bool) {
 	`, strings.Join(diff, ",\n\t"))
 
 	if len(diff) > 0 {
-		if failOnFinding{
+		if failOnFinding {
 			log.Fatal(diffReport)
 		} else {
 			log.Println(diffReport)
