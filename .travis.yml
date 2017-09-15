@@ -1,0 +1,18 @@
+sudo: required
+
+language: go
+
+go:
+  - master
+
+before_install:
+  # install goveralls
+  - go get github.com/mattn/goveralls
+
+script:
+  # unit tests
+  - go test -coverprofile=coverage.out
+
+# after_success:
+  # # send coverage report to coveralls
+  # - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
