@@ -22,7 +22,7 @@ var rootCmd = &cobra.Command{
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze",
 	Short: "Analyze a given package",
-	Long:  "Analyze takes a given package's code and determines which functions lack direct temp coverage.",
+	Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if analyzePackage == "" {
 			return errors.New("the required flag `-p, --package` was not specified")
