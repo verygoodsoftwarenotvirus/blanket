@@ -10,7 +10,7 @@ func (e *Example) B() string {
 	return "B"
 }
 
-func (e *Example) C() string {
+func (e Example) C() string {
 	return "C"
 }
 

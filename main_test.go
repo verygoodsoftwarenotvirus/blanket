@@ -116,9 +116,8 @@ func TestMainFunc(t *testing.T) {
 		import (
 			"log"
 
-
 		funk main() {
-			return e
+			return x
 		)`
 		fmt.Fprint(f, invalidCode)
 

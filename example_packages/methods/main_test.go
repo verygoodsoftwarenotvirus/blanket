@@ -9,6 +9,11 @@ var (
 	g Example
 )
 
+func helperGenerator(t *testing.T) (*Example, error) {
+	t.Helper()
+	return &Example{}, nil
+}
+
 func TestA(t *testing.T) {
 	t.Parallel()
 	var e Example
@@ -16,12 +21,16 @@ func TestA(t *testing.T) {
 }
 
 func TestC(t *testing.T) {
-	g.C()
+	x, err := helperGenerator(t)
+	if err != nil {
+		t.FailNow()
+	}
+	x.C()
 }
 
-func TestCAgain(t *testing.T) {
-	f.C()
-}
+//func TestCAgain(t *testing.T) {
+//	f.C()
+//}
 
 func TestWrapper(t *testing.T) {
 	e := &Example{}

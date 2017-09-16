@@ -91,7 +91,7 @@ func TestGetCalledNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{".Parallel", "Example.A", "Example.C", "wrapper"}
+		expectedDeclarations := []string{"Example.A", "Example.C", "wrapper"}
 		expected := set.New()
 		for _, x := range expectedDeclarations {
 			expected.Add(x)
