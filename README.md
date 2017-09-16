@@ -1,4 +1,4 @@
-# tarp
+# tarp [![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp) [![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master)
 
 `tarp` is a tiny helper library that helps you catch functions which don't have direct unit tests in your Go packages
 
@@ -48,7 +48,7 @@ func TestOuter(t *testing.T) {
 }
 ```
 
-Note that `B` doesn't have a direct test the way that `A` and `C` do. `B` is, however, tested in `TestOuter`. This would result in a 100% coverage report, because all the functions are called. What `tarp` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're cool with it, that's cool. If you're not cool with it, then you know what needs to have tests added. 
+Note that `B` doesn't have a direct test the way that `A` and `C` do. `B` is, however, tested in `TestOuter`. This would result in a 100% coverage report, because all the functions are called. What `tarp` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're cool with it, that's cool. If you're not cool with it, then you know what needs to have tests added.
 
 I think `tarp` could also be helpful for new developers looking to contribute towards a project. They can run `tarp` on the package and see if there are some functions they could easily add unit tests for, just to get their feet wet in a project.
 
