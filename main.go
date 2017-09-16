@@ -17,12 +17,8 @@ var rootCmd = &cobra.Command{
 	Use:   "tarp",
 	Short: "tarp is a temp coverage helper",
 	Long:  `tarp is a temp coverage helper`,
-	// Run: func(cmd *cobra.Command, args []string) {
-	// 	// log.Println("RootCmd.Run called")
-	// },
 }
 
-// analyzeCmd represents the analyze command
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze",
 	Short: "Analyze a given package",

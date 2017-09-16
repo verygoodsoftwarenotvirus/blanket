@@ -1,14 +1,13 @@
 package main
 
 import (
-	"go/parser"
-	"go/token"
+	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/bouk/monkey"
-	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +23,7 @@ type subtest struct {
 }
 
 func runSubtestSuite(t *testing.T, tests []subtest) {
+	t.Helper()
 	testPassed := true
 	for _, test := range tests {
 		if !testPassed {
@@ -33,127 +33,29 @@ func runSubtestSuite(t *testing.T, tests []subtest) {
 	}
 }
 
+func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string {
+	t.Helper()
+	gopath := os.Getenv("GOPATH")
+	if abs {
+		return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
+	}
+	return strings.Join([]string{"github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
+}
+
 ////////////////////////////////////////////////////////
 //                                                    //
 //                    Actual Tests                    //
 //                                                    //
 ////////////////////////////////////////////////////////
 
-func TestGetDeclaredNamesFromFile(t *testing.T) {
-	t.Parallel()
-
-	simple := func(t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main.go", nil, parser.AllErrors)
-		if err != nil {
-			t.Logf("failing because ParseFile returned error: %v", err)
-			t.FailNow()
-		}
-
-		expectedDeclarations := []string{"A", "B", "C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
-		}
-
-		actual := set.New()
-
-		getDeclaredNamesFromFile(in, actual)
-
-		assert.Equal(t, expected, actual, "expected output did not match actual output")
-	}
-
-	methods := func(t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main.go", nil, parser.AllErrors)
-		if err != nil {
-			t.Logf("failing because ParseFile returned error: %v", err)
-			t.FailNow()
-		}
-
-		expectedDeclarations := []string{"Example.A", "Example.B", "Example.C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
-		}
-
-		actual := set.New()
-		getDeclaredNamesFromFile(in, actual)
-
-		assert.Equal(t, expected, actual, "expected output did not match actual output")
-	}
-
-	subtests := []subtest{
-		{
-			Message: "simple package",
-			Test:    simple,
-		},
-		{
-			Message: "methods",
-			Test:    methods,
-		},
-	}
-	runSubtestSuite(t, subtests)
-}
-
-func TestGetCalledNames(t *testing.T) {
-	simple := func(t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
-		if err != nil {
-			t.Logf("failing because ParseFile returned error: %v", err)
-			t.FailNow()
-		}
-
-		expectedDeclarations := []string{"A", "C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
-		}
-
-		actual := set.New()
-		getCalledNames(in, actual)
-
-		assert.Equal(t, expected, actual, "expected output did not match actual output")
-	}
-
-	methods := func(t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
-		if err != nil {
-			t.Logf("failing because ParseFile returned error: %v", err)
-			t.FailNow()
-		}
-
-		expectedDeclarations := []string{".Parallel", "Example.A", "Example.C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
-		}
-
-		actual := set.New()
-		getCalledNames(in, actual)
-
-		assert.Equal(t, expected, actual, "expected output did not match actual output")
-	}
-
-	subtests := []subtest{
-		{
-			Message: "simple package",
-			Test:    simple,
-		},
-		{
-			Message: "methods",
-			Test:    methods,
-		},
-	}
-	runSubtestSuite(t, subtests)
-}
-
-func TestMain(t *testing.T) {
+func TestMainFunc(t *testing.T) {
 	originalArgs := os.Args
 
 	optimal := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
-			"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "simple", false)),
 		}
 
 		main()
@@ -164,7 +66,7 @@ func TestMain(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
-			"--package=github.com/nosuchrealusername/absolutelynosuchpackage",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "absolutelynosuchpackage", false)),
 			"--fail-on-found",
 		}
 
@@ -188,18 +90,46 @@ func TestMain(t *testing.T) {
 		monkey.Unpatch(log.Fatalf)
 	}
 
-	invalidCode := func(t *testing.T) {
+	invalidCodeTest := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
-			"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/invalid",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "invalid", false)),
 			"--fail-on-found",
 		}
+
+		invalidCodePath := buildExamplePackagePath(t, "invalid", true)
+		err := os.MkdirAll(invalidCodePath, os.ModePerm)
+		if err != nil {
+			t.Log("error encountered creating temp path for invalid code test")
+			t.FailNow()
+		}
+
+		f, err := os.Create(fmt.Sprintf("%s/main.go", invalidCodePath))
+		if err != nil {
+			t.Log("error encountered creating temp file for invalid code test")
+			t.FailNow()
+		}
+		invalidCode := `
+		package invalid
+
+		import (
+			"log"
+
+
+		funk main() {
+			return e
+		)`
+		fmt.Fprint(f, invalidCode)
 
 		defer func() {
 			if r := recover(); r != nil {
 				// recovered from our monkey patched log.Fatal
-				assert.True(t, true)
+				err = os.RemoveAll(invalidCodePath)
+				if err != nil {
+					t.Logf("error encountered deleting temp directory: %v", err)
+					t.FailNow()
+				}
 			}
 		}()
 
@@ -245,7 +175,7 @@ func TestMain(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
-			"--package=github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "simple", false)),
 			"--fail-on-found",
 		}
 
@@ -271,7 +201,7 @@ func TestMain(t *testing.T) {
 		},
 		{
 			Message: "invalid code",
-			Test:    invalidCode,
+			Test:    invalidCodeTest,
 		},
 		{
 			Message: "invalid args",
