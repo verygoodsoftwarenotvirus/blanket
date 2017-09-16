@@ -15,8 +15,8 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "tarp",
-	Short: "tarp is a temp coverage helper",
-	Long:  `tarp is a temp coverage helper`,
+	Short: "tarp is a coverage helper tool",
+	Long:  `tarp is a tool which aims to help ensure you have direct unit tests for all your declared functions for a particular Go package.`,
 }
 
 var analyzeCmd = &cobra.Command{
