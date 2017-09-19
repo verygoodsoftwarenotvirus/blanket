@@ -60,6 +60,8 @@ func parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, out *set.S
 	}
 }
 
+// parseGenDecl handles GenDecl nodes. From the go/ast docs:
+//     A GenDecl node (generic declaration node) represents an import, constant, type or variable declaration.
 func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 	for _, spec := range in.Specs {
 		switch global := spec.(type) {
@@ -92,6 +94,8 @@ func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
 	}
 }
 
+// parseAssignStmt handles AssignStmt nodes. From the go/ast docs:
+//    An AssignStmt node represents an assignment or a short variable declaration
 func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	// handles things like `e := Example{}` (with or without &)
 	leftHandSide := []string{}
@@ -112,7 +116,13 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 			parseUnaryExpr(t, leftHandSide[0], nameToTypeMap)
 		case *ast.CallExpr:
 			if len(in.Rhs) != len(in.Lhs) {
-				functionName := t.Fun.(*ast.Ident).Name
+				var functionName string
+				switch funcInfo := t.Fun.(type) {
+				case *ast.Ident:
+					functionName = funcInfo.Name
+				case *ast.SelectorExpr:
+					functionName = funcInfo.Sel.Name
+				}
 				if _, ok := helperFunctionReturnMap[functionName]; ok {
 					for i, thing := range leftHandSide {
 						nameToTypeMap[thing] = helperFunctionReturnMap[functionName][i]
@@ -179,12 +189,14 @@ func getCalledNames(in *ast.File, out *set.Set) {
 		case *ast.FuncDecl:
 			functionName := n.Name.Name
 			if !strings.HasPrefix(functionName, "Test") {
-				for _, r := range n.Type.Results.List {
-					switch rt := r.Type.(type){
-					case *ast.StarExpr:
-						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.X.(*ast.Ident).Name)
-					case *ast.Ident:
-						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
+				if n.Type.Results != nil {
+					for _, r := range n.Type.Results.List {
+						switch rt := r.Type.(type){
+						case *ast.StarExpr:
+							helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.X.(*ast.Ident).Name)
+						case *ast.Ident:
+							helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
+						}
 					}
 				}
 			}
@@ -211,6 +223,7 @@ func analyze(analyzePackage string, failOnFinding bool) {
 
 	declaredFuncs := set.New()
 	calledFuncs := set.New()
+	calledFuncs.Add("init")
 
 	if len(astPkg) == 0 {
 		log.Fatal("no go files found!")
@@ -228,7 +241,7 @@ func analyze(analyzePackage string, failOnFinding bool) {
 	}
 	diff := set.StringSlice(set.Difference(declaredFuncs, calledFuncs))
 	diffReport := fmt.Sprintf(`The following functions are declared but not called in any tests:
-%s
+	%s
 	`, strings.Join(diff, ",\n\t"))
 
 	if len(diff) > 0 {
