@@ -97,7 +97,6 @@ func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
 // parseAssignStmt handles AssignStmt nodes. From the go/ast docs:
 //    An AssignStmt node represents an assignment or a short variable declaration
 func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	// handles things like `e := Example{}` (with or without &)
 	leftHandSide := []string{}
 	for i := range in.Lhs {
 		switch v := in.Lhs[i].(type){
@@ -222,11 +221,10 @@ func analyze(analyzePackage string, failOnFinding bool) {
 	}
 
 	declaredFuncs := set.New()
-	calledFuncs := set.New()
-	calledFuncs.Add("init")
+	calledFuncs := set.New("init")
 
-	if len(astPkg) == 0 {
-		log.Fatal("no go files found!")
+	if len(astPkg) == 0 || astPkg == nil {
+		log.Fatalf("no go files found!")
 	}
 
 	for _, pkg := range astPkg {

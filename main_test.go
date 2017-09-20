@@ -1,52 +1,16 @@
+// +build !unit
+
 package main
 
 import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/bouk/monkey"
 	"github.com/stretchr/testify/assert"
 )
-
-////////////////////////////////////////////////////////
-//                                                    //
-//               Test Helper Functions                //
-//                                                    //
-////////////////////////////////////////////////////////
-
-type subtest struct {
-	Message string
-	Test    func(t *testing.T)
-}
-
-func runSubtestSuite(t *testing.T, tests []subtest) {
-	t.Helper()
-	testPassed := true
-	for _, test := range tests {
-		if !testPassed {
-			t.FailNow()
-		}
-		testPassed = t.Run(test.Message, test.Test)
-	}
-}
-
-func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string {
-	t.Helper()
-	gopath := os.Getenv("GOPATH")
-	if abs {
-		return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
-	}
-	return strings.Join([]string{"github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
-}
-
-////////////////////////////////////////////////////////
-//                                                    //
-//                    Actual Tests                    //
-//                                                    //
-////////////////////////////////////////////////////////
 
 func TestMainFunc(t *testing.T) {
 	originalArgs := os.Args
@@ -67,6 +31,34 @@ func TestMainFunc(t *testing.T) {
 			originalArgs[0],
 			"analyze",
 			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "absolutelynosuchpackage", false)),
+			"--fail-on-found",
+		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				// recovered from our monkey patched log.Fatalf
+				assert.True(t, true)
+			}
+		}()
+
+		var fatalfCalled bool
+		monkey.Patch(log.Fatalf, func(string, ...interface{}) {
+			fatalfCalled = true
+			panic("log.Fatalf")
+		})
+
+		main()
+		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-found is passed in and extras are found")
+
+		os.Args = originalArgs
+		monkey.Unpatch(log.Fatalf)
+	}
+
+	emptyPackage := func(t *testing.T) {
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "no_go_files", false)),
 			"--fail-on-found",
 		}
 
@@ -197,6 +189,10 @@ func TestMainFunc(t *testing.T) {
 		{
 			Message: "nonexistent package",
 			Test:    nonexistentPackage,
+		},
+		{
+			Message: "empty package",
+			Test:    emptyPackage,
 		},
 		{
 			Message: "invalid code",
