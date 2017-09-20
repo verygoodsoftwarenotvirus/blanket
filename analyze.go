@@ -3,16 +3,20 @@ package main
 import (
 	"fmt"
 	"go/ast"
-	"go/parser"
-	"go/token"
-	"log"
-	"os"
 	"strings"
 
 	"github.com/fatih/set"
 )
 
 // Using switches everywhere here to avoid panics, this is probably wrong and bad but ¯\_(ツ)_/¯
+func getDeclaredNames(in *ast.File, out *set.Set) {
+	for _, d := range in.Decls {
+		switch f := d.(type) {
+		case *ast.FuncDecl:
+			parseFuncDecl(f, out)
+		}
+	}
+}
 
 func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	// FIXME: iterate over in.Args to see if there are function calls
@@ -99,19 +103,19 @@ func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
 func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	leftHandSide := []string{}
 	for i := range in.Lhs {
-		switch v := in.Lhs[i].(type){
+		switch v := in.Lhs[i].(type) {
 		case *ast.Ident:
 			varName := v.Name
 			leftHandSide = append(leftHandSide, varName)
 		}
 	}
 
-	for j := range in.Rhs{
+	for j := range in.Rhs {
 		switch t := in.Rhs[j].(type) {
 		case *ast.FuncLit:
 			getCalledNamesFromFunctionLiteral(t, nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.UnaryExpr:
-			// something's goofy here
+			// FIXME: I think something might be goofy here, note the [0]
 			parseUnaryExpr(t, leftHandSide[0], nameToTypeMap)
 		case *ast.CallExpr:
 			if len(in.Rhs) != len(in.Lhs) {
@@ -130,19 +134,6 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 			}
 			parseCallExpr(t, nameToTypeMap, helperFunctionReturnMap, out)
 		}
-	}
-}
-
-func getDeclaredNamesFromFile(in *ast.File, out *set.Set) {
-	for _, x := range in.Decls {
-		getDeclaredNames(x, out)
-	}
-}
-
-func getDeclaredNames(in ast.Decl, out *set.Set) {
-	switch f := in.(type) {
-	case *ast.FuncDecl:
-		parseFuncDecl(f, out)
 	}
 }
 
@@ -190,7 +181,7 @@ func getCalledNames(in *ast.File, out *set.Set) {
 			if !strings.HasPrefix(functionName, "Test") {
 				if n.Type.Results != nil {
 					for _, r := range n.Type.Results.List {
-						switch rt := r.Type.(type){
+						switch rt := r.Type.(type) {
 						case *ast.StarExpr:
 							helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.X.(*ast.Ident).Name)
 						case *ast.Ident:
@@ -202,51 +193,6 @@ func getCalledNames(in *ast.File, out *set.Set) {
 			for _, le := range n.Body.List {
 				parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 			}
-		}
-	}
-}
-
-func analyze(analyzePackage string, failOnFinding bool) {
-	gopath := os.Getenv("GOPATH")
-	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
-
-	_, err := os.Stat(pkgDir)
-	if os.IsNotExist(err) {
-		log.Fatalf("packageDir doesn't exist: %s", pkgDir)
-	}
-
-	astPkg, err := parser.ParseDir(token.NewFileSet(), pkgDir, nil, parser.AllErrors)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	declaredFuncs := set.New()
-	calledFuncs := set.New("init")
-
-	if len(astPkg) == 0 || astPkg == nil {
-		log.Fatalf("no go files found!")
-	}
-
-	for _, pkg := range astPkg {
-		for name, f := range pkg.Files {
-			isTest := strings.HasSuffix(name, "_test.go")
-			if isTest {
-				getCalledNames(f, calledFuncs)
-			} else {
-				getDeclaredNamesFromFile(f, declaredFuncs)
-			}
-		}
-	}
-	diff := set.StringSlice(set.Difference(declaredFuncs, calledFuncs))
-	diffReport := fmt.Sprintf(`The following functions are declared but not called in any tests:
-	%s
-	`, strings.Join(diff, ",\n\t"))
-
-	if len(diff) > 0 {
-		if failOnFinding {
-			log.Fatal(diffReport)
-		} else {
-			log.Println(diffReport)
 		}
 	}
 }

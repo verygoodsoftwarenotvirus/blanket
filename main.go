@@ -5,8 +5,13 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go/parser"
+	"go/token"
+	"log"
 	"os"
+	"strings"
 
+	"github.com/fatih/set"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +45,51 @@ func init() {
 	rootCmd.AddCommand(analyzeCmd)
 	analyzeCmd.Flags().BoolVarP(&failOnFinding, "fail-on-found", "f", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", "", "Package to run analyze on")
+}
+
+func analyze(analyzePackage string, failOnFinding bool) {
+	gopath := os.Getenv("GOPATH")
+	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
+
+	_, err := os.Stat(pkgDir)
+	if os.IsNotExist(err) {
+		log.Fatalf("packageDir doesn't exist: %s", pkgDir)
+	}
+
+	astPkg, err := parser.ParseDir(token.NewFileSet(), pkgDir, nil, parser.AllErrors)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	declaredFuncs := set.New()
+	calledFuncs := set.New("init")
+
+	if len(astPkg) == 0 || astPkg == nil {
+		log.Fatalf("no go files found!")
+	}
+
+	for _, pkg := range astPkg {
+		for name, f := range pkg.Files {
+			isTest := strings.HasSuffix(name, "_test.go")
+			if isTest {
+				getCalledNames(f, calledFuncs)
+			} else {
+				getDeclaredNames(f, declaredFuncs)
+			}
+		}
+	}
+	diff := set.StringSlice(set.Difference(declaredFuncs, calledFuncs))
+	diffReport := fmt.Sprintf(`The following functions are declared but not called in any tests:
+	%s
+	`, strings.Join(diff, ",\n\t"))
+
+	if len(diff) > 0 {
+		if failOnFinding {
+			log.Fatal(diffReport)
+		} else {
+			log.Println(diffReport)
+		}
+	}
 }
 
 func main() {

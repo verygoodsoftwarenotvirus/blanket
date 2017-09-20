@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// func TestGetDeclaredNamesFromFile(t *testing.T) {
+// func TestGetDeclaredNames(t *testing.T) {
 // 	t.Parallel()
 
 // 	simple := func(t *testing.T) {
@@ -29,7 +29,7 @@ import (
 
 // 		actual := set.New()
 
-// 		getDeclaredNamesFromFile(in, actual)
+// 		getDeclaredNames(in, actual)
 
 // 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 // 	}
@@ -48,7 +48,7 @@ import (
 // 		}
 
 // 		actual := set.New()
-// 		getDeclaredNamesFromFile(in, actual)
+// 		getDeclaredNames(in, actual)
 
 // 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 // 	}
@@ -366,24 +366,101 @@ func TestParseFuncDecl(t *testing.T) {
 
 func TestParseAssignStmt(t *testing.T) {
 	t.Parallel()
-	exampleInput := &ast.AssignStmt{
-		Lhs: []ast.Expr{
-			&ast.Ident{Name: "x"},
-		},
-		Rhs: []ast.Expr{
-			&ast.CallExpr{
-				Fun: &ast.Ident{Name: "method"},
+
+	callExpr := func(t *testing.T) {
+		exampleInput := &ast.AssignStmt{
+			Lhs: []ast.Expr{
+				&ast.Ident{Name: "x"},
 			},
-		},
+			Rhs: []ast.Expr{
+				&ast.CallExpr{
+					Fun: &ast.Ident{Name: "method"},
+				},
+			},
+		}
+
+		exampleNameToTypeMap := map[string]string{}
+		exampleHelperFunctionMap := map[string][]string{}
+
+		actual := set.New()
+		expected := set.New("method")
+
+		parseAssignStmt(exampleInput, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
 
-	exampleNameToTypeMap := map[string]string{}
-	exampleHelperFunctionMap := map[string][]string{}
+	callExprWithMultipleReturnsAndIdent := func(t *testing.T) {
+		exampleHelperFunctionName := "helperFunction"
+		exampleInput := &ast.AssignStmt{
+			Lhs: []ast.Expr{
+				&ast.Ident{Name: "x"},
+				&ast.Ident{Name: "y"},
+			},
+			Rhs: []ast.Expr{
+				&ast.CallExpr{
+					Fun: &ast.Ident{Name: exampleHelperFunctionName},
+				},
+			},
+		}
 
-	actual := set.New()
-	expected := set.New("method")
+		exampleHelperFunctionMap := map[string][]string{
+			exampleHelperFunctionName: {
+				"X",
+				"Y",
+			},
+		}
 
-	parseAssignStmt(exampleInput, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
+		s := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{
+			"x": "X",
+			"y": "Y",
+		}
 
-	assert.Equal(t, expected, actual, "actual output does not match expected output")
+		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, s)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+
+	callExprWithMultipleReturnsAndSelectorExpr := func(t *testing.T) {
+		// FIXME: I'm not certain this test does what I think it should be doing.
+		exampleHelperFunctionName := "helperFunction"
+		exampleInput := &ast.AssignStmt{
+			Lhs: []ast.Expr{
+				&ast.Ident{Name: "x"},
+				&ast.Ident{Name: "y"},
+			},
+			Rhs: []ast.Expr{
+				&ast.CallExpr{
+					Fun: &ast.SelectorExpr{
+						X: &ast.Ident{Name: "name"},
+						Sel: &ast.Ident{Name: exampleHelperFunctionName},
+					},
+				},
+			},
+		}
+
+		exampleHelperFunctionMap := map[string][]string{
+			exampleHelperFunctionName: {
+				"X",
+				"Y",
+			},
+		}
+
+		out := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{
+			"x": "X",
+			"y": "Y",
+		}
+
+		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+
+	t.Run("CallExpr", callExpr)
+	t.Run("CallExpr with multiple returns and ast.Ident Fun value", callExprWithMultipleReturnsAndIdent)
+	t.Run("CallExpr with multiple returns and ast.SelectorExpr Fun value", callExprWithMultipleReturnsAndSelectorExpr)
 }
