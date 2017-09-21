@@ -37,6 +37,7 @@ func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]
 
 // parseDeclStmt parses declaration statments. From the go/ast docs:
 // 		A DeclStmt node represents a declaration in a statement list.
+// DeclStmts come from function bodies, GenDecls come from package-wide const or var declarations
 func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
 	varName := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name
 	typeName := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(*ast.Ident).Name

@@ -131,9 +131,11 @@ func TestParseCallExpr(t *testing.T) {
 		`
 
 		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-		assert.Nil(t, err)
-		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+		if err != nil {
+			t.FailNow()
+		}
 
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
 
@@ -158,14 +160,13 @@ func TestParseCallExpr(t *testing.T) {
 		`
 
 		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-		assert.Nil(t, err)
-		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
-
-		exampleNameToTypeMap := map[string]string{
-			"s": "Struct",
+		if err != nil {
+			t.FailNow()
 		}
-		exampleHelperFunctionMap := map[string][]string{}
 
+		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
+		exampleNameToTypeMap := map[string]string{"s": "Struct"}
+		exampleHelperFunctionMap := map[string][]string{}
 		actual := set.New()
 		expected := set.New("Struct.method")
 
@@ -187,12 +188,13 @@ func TestParseCallExpr(t *testing.T) {
 		`
 
 		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-		assert.Nil(t, err)
-		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
+		if err != nil {
+			t.FailNow()
+		}
 
+		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
-
 		actual := set.New()
 		expected := set.New()
 
@@ -205,45 +207,49 @@ func TestParseCallExpr(t *testing.T) {
 
 func TestParseUnaryExpr(t *testing.T) {
 	t.Parallel()
-	exampleExprName := "expression"
-	exampleInput := &ast.UnaryExpr{
-		X: &ast.CompositeLit{
-			Type: &ast.Ident{Name: exampleExprName},
-		},
+
+	codeSample := `
+			package main
+			type Struct struct{}
+			func main(){
+				s := &Struct{}
+			}
+		`
+
+	p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
+	if err != nil {
+		t.FailNow()
 	}
-	exampleVarName := "varName"
-	expected := map[string]string{
-		exampleVarName: exampleExprName,
-	}
+
+	input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.UnaryExpr)
+	expected := map[string]string{"s": "Struct"}
 	actual := map[string]string{}
 
-	parseUnaryExpr(exampleInput, exampleVarName, actual)
+	parseUnaryExpr(input, "s", actual)
 
 	assert.Equal(t, expected, actual, "actual output does not match expected output")
 }
 
 func TestParseDeclStmt(t *testing.T) {
 	t.Parallel()
-	exampleName := "e"
-	exampleType := "example"
-	exampleInput := &ast.DeclStmt{
-		Decl: &ast.GenDecl{
-			Specs: []ast.Spec{
-				&ast.ValueSpec{
-					Names: []*ast.Ident{
-						{Name: exampleName},
-					},
-					Type: &ast.Ident{Name: exampleType},
-				},
-			},
-		},
+
+	codeSample := `
+		package main
+		func main(){
+			var test bool
+		}
+	`
+
+	p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
+	if err != nil {
+		t.FailNow()
 	}
 
-	expected := map[string]string{
-		exampleName: exampleType,
-	}
+	input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.DeclStmt)
+	expected := map[string]string{"test": "bool"}
 	actual := map[string]string{}
-	parseDeclStmt(exampleInput, actual)
+
+	parseDeclStmt(input, actual)
 
 	assert.Equal(t, expected, actual, "actual output does not match expected output")
 }
