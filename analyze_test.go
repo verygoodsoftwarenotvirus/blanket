@@ -434,7 +434,7 @@ func TestParseAssignStmt(t *testing.T) {
 			Rhs: []ast.Expr{
 				&ast.CallExpr{
 					Fun: &ast.SelectorExpr{
-						X: &ast.Ident{Name: "name"},
+						X:   &ast.Ident{Name: "name"},
 						Sel: &ast.Ident{Name: exampleHelperFunctionName},
 					},
 				},
@@ -460,7 +460,80 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
 
+	unaryExpr := func(t *testing.T) {
+		// FIXME: I'm not certain this test does what I think it should be doing.
+		exampleHelperFunctionName := "helperFunction"
+		exampleExprName := "expression"
+		exampleInput := &ast.AssignStmt{
+			Lhs: []ast.Expr{
+				&ast.Ident{Name: "x"},
+				&ast.Ident{Name: "y"},
+			},
+			Rhs: []ast.Expr{
+				&ast.UnaryExpr{
+					X: &ast.CompositeLit{
+						Type: &ast.Ident{Name: exampleExprName},
+					},
+				},
+			},
+		}
+
+		exampleHelperFunctionMap := map[string][]string{
+			exampleHelperFunctionName: {
+				"X",
+				"Y",
+			},
+		}
+
+		out := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{
+			"x": "expression",
+		}
+
+		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+
+	functionLiteral := func(t *testing.T) {
+		// FIXME: I'm not certain this test does what I think it should be doing.
+		exampleHelperFunctionName := "helperFunction"
+		exampleInput := &ast.AssignStmt{
+			Lhs: []ast.Expr{
+				&ast.Ident{Name: "x"},
+				&ast.Ident{Name: "y"},
+			},
+			Rhs: []ast.Expr{
+				&ast.FuncLit{
+					Body: &ast.BlockStmt{
+
+					},
+				},
+			},
+		}
+
+		exampleHelperFunctionMap := map[string][]string{
+			exampleHelperFunctionName: {
+				"X",
+				"Y",
+			},
+		}
+
+		out := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{
+			"x": "expression",
+		}
+
+		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+
 	t.Run("CallExpr", callExpr)
 	t.Run("CallExpr with multiple returns and ast.Ident Fun value", callExprWithMultipleReturnsAndIdent)
 	t.Run("CallExpr with multiple returns and ast.SelectorExpr Fun value", callExprWithMultipleReturnsAndSelectorExpr)
+	t.Run("UnaryExpr", unaryExpr)
+	t.Run("FuncLit", functionLiteral)
 }
