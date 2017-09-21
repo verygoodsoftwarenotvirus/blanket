@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"go/ast"
-	// "go/parser"
-	// "go/token"
+	"go/parser"
+	"go/token"
 	"testing"
 
 	"github.com/fatih/set"
@@ -118,24 +118,37 @@ import (
 // 	runSubtestSuite(t, subtests)
 // }
 
+func use(...interface{}) {
+	return
+}
+
 func TestParseCallExpr(t *testing.T) {
 	t.Parallel()
-	astIdentTest := func(t *testing.T) {
-		exampleFunctionName := "function"
 
-		input := &ast.CallExpr{
-			Fun: &ast.Ident{Name: exampleFunctionName},
-		}
+	astIdentTest := func(t *testing.T) {
+		codeSample := `
+			package main
+			var function func()
+			func main(){
+				fart := function()
+			}
+		`
+
+		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
+		assert.Nil(t, err)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
 
 		actual := set.New()
-		expected := set.New(exampleFunctionName)
+		expected := set.New("function")
 
 		parseCallExpr(input, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	}
+	t.Run("with ast.Ident", astIdentTest)
 
 	astSelectorExprTest := func(t *testing.T) {
 		exampleVariableName := "instance"
@@ -159,6 +172,7 @@ func TestParseCallExpr(t *testing.T) {
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	}
+	t.Run("with ast.SelectorExpr", astSelectorExprTest)
 
 	astSelectorExprTestWithoutMatchInMap := func(t *testing.T) {
 		input := &ast.CallExpr{
@@ -177,9 +191,6 @@ func TestParseCallExpr(t *testing.T) {
 
 		assert.Equal(t, expected, actual, "expected function name to NOT be added to output")
 	}
-
-	t.Run("with ast.Ident", astIdentTest)
-	t.Run("with ast.SelectorExpr", astSelectorExprTest)
 	t.Run("with ast.SelectorExpr, but no matching entity", astSelectorExprTestWithoutMatchInMap)
 }
 
@@ -506,9 +517,7 @@ func TestParseAssignStmt(t *testing.T) {
 			},
 			Rhs: []ast.Expr{
 				&ast.FuncLit{
-					Body: &ast.BlockStmt{
-
-					},
+					Body: &ast.BlockStmt{},
 				},
 			},
 		}
@@ -522,9 +531,7 @@ func TestParseAssignStmt(t *testing.T) {
 
 		out := set.New()
 		actual := map[string]string{}
-		expected := map[string]string{
-			"x": "expression",
-		}
+		expected := map[string]string{}
 
 		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
 
