@@ -118,10 +118,6 @@ import (
 // 	runSubtestSuite(t, subtests)
 // }
 
-func use(...interface{}) {
-	return
-}
-
 func TestParseCallExpr(t *testing.T) {
 	t.Parallel()
 
@@ -151,22 +147,27 @@ func TestParseCallExpr(t *testing.T) {
 	t.Run("with ast.Ident", astIdentTest)
 
 	astSelectorExprTest := func(t *testing.T) {
-		exampleVariableName := "instance"
-		exampleCustomTypeName := "CustomType"
+		codeSample := `
+			package main
+			type Struct struct{}
+			func (s Struct) method(){}
+			func main(){
+				s := Struct{}
+				s.method()
+			}
+		`
 
-		input := &ast.CallExpr{
-			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{Name: exampleVariableName},
-				Sel: &ast.Ident{Name: "method"},
-			},
-		}
+		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
+		assert.Nil(t, err)
+		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
+
 		exampleNameToTypeMap := map[string]string{
-			exampleVariableName: exampleCustomTypeName,
+			"s": "Struct",
 		}
 		exampleHelperFunctionMap := map[string][]string{}
 
 		actual := set.New()
-		expected := set.New("CustomType.method")
+		expected := set.New("Struct.method")
 
 		parseCallExpr(input, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
 
@@ -175,12 +176,20 @@ func TestParseCallExpr(t *testing.T) {
 	t.Run("with ast.SelectorExpr", astSelectorExprTest)
 
 	astSelectorExprTestWithoutMatchInMap := func(t *testing.T) {
-		input := &ast.CallExpr{
-			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{Name: "instance"},
-				Sel: &ast.Ident{Name: "method"},
-			},
-		}
+		codeSample := `
+			package main
+			type Struct struct{}
+			func (s Struct) method(){}
+			func main(){
+				s := Struct{}
+				s.method()
+			}
+		`
+
+		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
+		assert.Nil(t, err)
+		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
+
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
 
@@ -189,9 +198,9 @@ func TestParseCallExpr(t *testing.T) {
 
 		parseCallExpr(input, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
 
-		assert.Equal(t, expected, actual, "expected function name to NOT be added to output")
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	}
-	t.Run("with ast.SelectorExpr, but no matching entity", astSelectorExprTestWithoutMatchInMap)
+	t.Run("with ast.SelectorExpr, but no matching entit", astSelectorExprTestWithoutMatchInMap)
 }
 
 func TestParseUnaryExpr(t *testing.T) {
