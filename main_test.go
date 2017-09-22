@@ -34,6 +34,16 @@ func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string 
 //                                                    //
 ////////////////////////////////////////////////////////
 
+func init() {
+	monkey.Patch(log.Fatalf, func(string, ...interface{}) {
+		panic("log.Fatalf")
+	})
+
+	monkey.Patch(log.Fatal, func(...interface{}) {
+		panic("log.Fatal")
+	})
+}
+
 func TestFuncMain(t *testing.T) {
 	originalArgs := os.Args
 
@@ -57,24 +67,17 @@ func TestFuncMain(t *testing.T) {
 			"--fail-on-found",
 		}
 
+		var fatalfCalled bool
 		defer func() {
 			if r := recover(); r != nil {
 				// recovered from our monkey patched log.Fatalf
-				assert.True(t, true)
+				fatalfCalled = true
 			}
 		}()
 
-		var fatalfCalled bool
-		monkey.Patch(log.Fatalf, func(string, ...interface{}) {
-			fatalfCalled = true
-			panic("log.Fatalf")
-		})
-
 		main()
 		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-found is passed in and extras are found")
-
 		os.Args = originalArgs
-		monkey.Unpatch(log.Fatalf)
 	}
 	t.Run("nonexistent package", nonexistentPackage)
 
@@ -86,24 +89,17 @@ func TestFuncMain(t *testing.T) {
 			"--fail-on-found",
 		}
 
+		var fatalfCalled bool
 		defer func() {
 			if r := recover(); r != nil {
 				// recovered from our monkey patched log.Fatalf
-				assert.True(t, true)
+				fatalfCalled = true
 			}
 		}()
 
-		var fatalfCalled bool
-		monkey.Patch(log.Fatalf, func(string, ...interface{}) {
-			fatalfCalled = true
-			panic("log.Fatalf")
-		})
-
 		main()
 		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-found is passed in and extras are found")
-
 		os.Args = originalArgs
-		monkey.Unpatch(log.Fatalf)
 	}
 	t.Run("empty package", emptyPackage)
 
@@ -138,9 +134,11 @@ func TestFuncMain(t *testing.T) {
 		)`
 		fmt.Fprint(f, invalidCode)
 
+		var fatalCalled bool
 		defer func() {
+			// recovered from our monkey patched log.Fatal
 			if r := recover(); r != nil {
-				// recovered from our monkey patched log.Fatal
+				fatalCalled = true
 				err = os.RemoveAll(invalidCodePath)
 				if err != nil {
 					t.Logf("error encountered deleting temp directory: %v", err)
@@ -149,18 +147,9 @@ func TestFuncMain(t *testing.T) {
 			}
 		}()
 
-		var fatalCalled bool
-		monkey.Patch(log.Fatal, func(...interface{}) {
-			fatalCalled = true
-			panic("log.Fatal")
-		})
-
 		main()
-
 		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
-
 		os.Args = originalArgs
-		monkey.Unpatch(log.Fatal)
 	}
 	t.Run("invalid code", invalidCodeTest)
 
@@ -169,23 +158,19 @@ func TestFuncMain(t *testing.T) {
 			originalArgs[0],
 			"analyze",
 		}
+
+		var fatalCalled bool
 		defer func() {
+			// recovered from our monkey patched log.Fatal
 			if r := recover(); r != nil {
-				// recovered from our monkey patched log.Fatal
+				fatalCalled = true
 				assert.True(t, true)
 			}
 		}()
 
-		var fatalCalled bool
-		monkey.Patch(log.Fatal, func(...interface{}) {
-			fatalCalled = true
-			panic("log.Fatal")
-		})
-
 		main()
 		assert.True(t, fatalCalled, "main should call log.Fatal when invalid arguments are passed to analyze")
 		os.Args = originalArgs
-		monkey.Unpatch(log.Fatal)
 	}
 	t.Run("invalid arguments", invalidArguments)
 
@@ -198,14 +183,17 @@ func TestFuncMain(t *testing.T) {
 		}
 
 		var fatalCalled bool
-		monkey.Patch(log.Fatal, func(...interface{}) {
-			fatalCalled = true
-		})
+		defer func() {
+			// recovered from our monkey patched log.Fatal
+			if r := recover(); r != nil {
+				fatalCalled = true
+				assert.True(t, true)
+			}
+		}()
 
 		main()
 		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
 		os.Args = originalArgs
-		monkey.Unpatch(log.Fatal)
 	}
 	t.Run("fails with --fail-on-found", failsWhenInstructed)
 }

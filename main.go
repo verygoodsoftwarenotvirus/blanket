@@ -44,12 +44,20 @@ var analyzeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
 	analyzeCmd.Flags().BoolVarP(&failOnFinding, "fail-on-found", "f", false, "Call os.Exit(1) when functions without direct tests are found")
-	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", "", "Package to run analyze on")
+	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", ".", "Package to run analyze on. Defaults to the current directory.")
 }
 
 func analyze(analyzePackage string, failOnFinding bool) {
 	gopath := os.Getenv("GOPATH")
+
 	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
+	if analyzePackage == "." {
+		var err error
+		pkgDir, err = os.Getwd()
+		if err != nil {
+			log.Fatalf("error encountered getting current working directory: %v", err)
+		}
+	}
 
 	_, err := os.Stat(pkgDir)
 	if os.IsNotExist(err) {
@@ -65,7 +73,7 @@ func analyze(analyzePackage string, failOnFinding bool) {
 	calledFuncs := set.New("init")
 
 	if len(astPkg) == 0 || astPkg == nil {
-		log.Fatalf("no go files found!")
+		log.Fatal("no go files found!")
 	}
 
 	for _, pkg := range astPkg {
