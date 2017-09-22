@@ -513,6 +513,33 @@ func TestParseAssignStmt(t *testing.T) {
 	}
 	t.Run("UnaryExpr", unaryExpr)
 
+	multipleUnaryExpressions := func(t *testing.T) {
+		codeSample := `
+			package main
+			import "testing"
+			func TestX(t *testing.T) {
+				one, other := &SomeStruct{}, &SomeOtherStruct{}
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+
+		exampleHelperFunctionMap := map[string][]string{}
+
+		out := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{
+			"one": "SomeStruct",
+			"other": "SomeOtherStruct",
+		}
+
+		parseAssignStmt(input, actual, exampleHelperFunctionMap, out)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("multiple unary expressions", multipleUnaryExpressions)
+
 	functionLiteral := func(t *testing.T) {
 		codeSample := `
 		 	package main

@@ -79,11 +79,7 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 		case *ast.FuncLit:
 			parseFuncLit(t, nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.UnaryExpr:
-			// FIXME: I think something might be goofy here, note the [0]
-			parseUnaryExpr(t, leftHandSide[0], nameToTypeMap)
-			//for x := range leftHandSide {
-			//	parseUnaryExpr(t, leftHandSide[x], nameToTypeMap)
-			//}
+			parseUnaryExpr(t, leftHandSide[j], nameToTypeMap)
 		case *ast.CallExpr:
 			if len(in.Rhs) != len(in.Lhs) {
 				var functionName string
@@ -192,7 +188,12 @@ func parseFuncDeclCall(in *ast.FuncDecl, nameToTypeMap map[string]string, helper
 			for _, r := range in.Type.Results.List {
 				switch rt := r.Type.(type) {
 				case *ast.StarExpr:
-					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.X.(*ast.Ident).Name)
+					switch x := rt.X.(type) {
+					case *ast.Ident:
+						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Name)
+					case *ast.SelectorExpr:
+						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Sel.Name)
+					}
 				case *ast.Ident:
 					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
 				}
