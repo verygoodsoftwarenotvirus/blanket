@@ -34,7 +34,7 @@ func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string 
 //                                                    //
 ////////////////////////////////////////////////////////
 
-func TestMainFunc(t *testing.T) {
+func TestFuncMain(t *testing.T) {
 	originalArgs := os.Args
 
 	optimal := func(t *testing.T) {

@@ -149,10 +149,11 @@ func TestParseExprStmt(t *testing.T) {
 		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt)
 
 		nameToTypeMap := map[string]string{}
+		helperFunctionReturnMap := map[string][]string{}
 		expected := set.New("example")
 		actual := set.New()
 
-		parseExprStmt(input, nameToTypeMap, actual)
+		parseExprStmt(input, nameToTypeMap, helperFunctionReturnMap, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -172,11 +173,12 @@ func TestParseExprStmt(t *testing.T) {
 		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt)
 
+		helperFunctionReturnMap := map[string][]string{}
 		nameToTypeMap := map[string]string{"e": "Example"}
 		expected := set.New("Example.method")
 		actual := set.New()
 
-		parseExprStmt(input, nameToTypeMap, actual)
+		parseExprStmt(input, nameToTypeMap, helperFunctionReturnMap, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -458,6 +460,63 @@ func TestParseAssignStmt(t *testing.T) {
 	t.Run("FuncLit", functionLiteral)
 }
 
+func TestParseFuncDeclCall(t *testing.T) {
+	t.Parallel()
+
+	ptrAndNonPtrReturns := func(t *testing.T) {
+		codeSample := `
+			package main
+			import "testing"
+			func helperBuilder(t *testing. T) (*Example, error) {
+				return &Example{}, nil
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl)
+
+		nameToTypeMap := map[string]string{}
+		out := set.New()
+		actual := map[string][]string{}
+		expected := map[string][]string{
+			"helperBuilder": {
+				"Example",
+				"error",
+			},
+		}
+
+		parseFuncDeclCall(input, nameToTypeMap, actual, out)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("pointer and non-pointer return values", ptrAndNonPtrReturns)
+
+	selectorExpressionReturnType := func(t *testing.T) {
+		codeSample := `
+			package main
+			import "testing"
+			func helperBuilder(t *testing. T) *pkg.Example {
+				return &pkg.Example{}
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl)
+
+		nameToTypeMap := map[string]string{}
+		out := set.New()
+		actual := map[string][]string{}
+		expected := map[string][]string{
+			"helperBuilder": {"pkg.Example"},
+		}
+
+		parseFuncDeclCall(input, nameToTypeMap, actual, out)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("selector expression return type", selectorExpressionReturnType)
+}
+
 func TestParseFuncLit(t *testing.T) {
 	t.Parallel()
 
@@ -490,89 +549,212 @@ func TestParseFuncLit(t *testing.T) {
 	t.Run("all cases", totalTest)
 }
 
-// func TestGetDeclaredNames(t *testing.T) {
-// 	t.Parallel()
+func TestParseStmt(t *testing.T) {
+	all := func(t *testing.T) {
+		codeSample := `
+			package main
 
-// 	simple := func(t *testing.T) {
-// 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main.go", nil, parser.AllErrors)
-// 		if err != nil {
-// 			t.Logf("failing because ParseFile returned error: %v", err)
-// 			t.FailNow()
-// 		}
+			import "testing"
 
-// 		expectedDeclarations := []string{"A", "B", "C", "wrapper"}
-// 		expected := set.New()
-// 		for _, x := range expectedDeclarations {
-// 			expected.Add(x)
-// 		}
+			func TestX(t *testing.T) string {
+				// AssignStmt:
+				tmp := "AssignStmt"
+				var x Example
 
-// 		actual := set.New()
+				// RangeStmt
+				for range [1]struct{}{} {
+					A()
+				}
 
-// 		getDeclaredNames(in, actual)
+				// IfStmt
+				if true {
+					B()
+				}
 
-// 		assert.Equal(t, expected, actual, "expected output did not match actual output")
-// 	}
-// 	t.Run("simple", simple)
+				// DeclStmt
+				var declStmt ast.DeclStmt
 
-// 	methods := func(t *testing.T) {
-// 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main.go", nil, parser.AllErrors)
-// 		if err != nil {
-// 			t.Logf("failing because ParseFile returned error: %v", err)
-// 			t.FailNow()
-// 		}
+				// ExprStmt
+				C()
 
-// 		expectedDeclarations := []string{"Example.A", "Example.B", "Example.C", "wrapper"}
-// 		expected := set.New()
-// 		for _, x := range expectedDeclarations {
-// 			expected.Add(x)
-// 		}
+				// DeferStmt
+				defer func() {
+					D()
+				}()
+				defer E()
+				defer x.MethodOne()
 
-// 		actual := set.New()
-// 		getDeclaredNames(in, actual)
+				// ForStmt
+				for i := 0; i < 1; i++ {
+					F()
+				}
 
-// 		assert.Equal(t, expected, actual, "expected output did not match actual output")
-// 	}
-// 	t.Run("methods", methods)
-// }
+				// GoStmt
+				go G()
+				go func() {
+					H()
+				}()
+				go x.MethodTwo()
 
-// func TestGetCalledNames(t *testing.T) {
-// 	simple := func(t *testing.T) {
-// 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
-// 		if err != nil {
-// 			t.Logf("failing because ParseFile returned error: %v", err)
-// 			t.FailNow()
-// 		}
+				// SelectStmt
+				temp := make(chan int)
+				go func() {
+					temp <- 0
+				}()
 
-// 		expectedDeclarations := []string{"A", "C", "wrapper"}
-// 		expected := set.New()
-// 		for _, x := range expectedDeclarations {
-// 			expected.Add(x)
-// 		}
+				for {
+					select {
+					case <-temp:
+						I()
+						return
+					}
+				}
 
-// 		actual := set.New()
-// 		getCalledNames(in, actual)
+				// SendStmt
+				thing <- J()
+				thing <- func(){
+					K()
+				}()
+				thing <- x.MethodThree()
 
-// 		assert.Equal(t, expected, actual, "expected output did not match actual output")
-// 	}
-// 	t.Run("simple", simple)
+				// SwitchStmt
+				switch tmp {
+				case tmp:
+					L()
+				}
 
-// 	methods := func(t *testing.T) {
-// 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
-// 		if err != nil {
-// 			t.Logf("failing because ParseFile returned error: %v", err)
-// 			t.FailNow()
-// 		}
+				// TypeSwitchStmt
+				func(i interface{}) {
+					switch i.(type) {
+					case string:
+						M()
+					}
+				}(tmp)
 
-// 		expectedDeclarations := []string{"Example.A", "Example.C", "wrapper"}
-// 		expected := set.New()
-// 		for _, x := range expectedDeclarations {
-// 			expected.Add(x)
-// 		}
+				// ReturnStmt
+				return N()
+			}
+		`
 
-// 		actual := set.New()
-// 		getCalledNames(in, actual)
+		helperFunctionMap := map[string][]string{}
+		nameToTypeMap := map[string]string{}
+		actual := set.New(
+			"make",
+		)
+		expected := set.New(
+			"A",
+			"B",
+			"C",
+			"D",
+			"E",
+			"F",
+			"G",
+			"H",
+			"I",
+			"J",
+			"K",
+			"L",
+			"M",
+			"N",
+			"make",
+			"Example.MethodOne",
+			"Example.MethodTwo",
+			"Example.MethodThree",
+		)
 
-// 		assert.Equal(t, expected, actual, "expected output did not match actual output")
-// 	}
-// 	t.Run("methods", methods)
-// }
+		p := parseChunkOfCode(t, codeSample)
+		for _, input := range p.Decls[1].(*ast.FuncDecl).Body.List {
+			parseStmt(input, nameToTypeMap, helperFunctionMap, actual)
+		}
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("all", all)
+}
+
+func TestGetDeclaredNames(t *testing.T) {
+	t.Parallel()
+
+	simple := func(t *testing.T) {
+		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main.go", nil, parser.AllErrors)
+		if err != nil {
+			t.Logf("failing because ParseFile returned error: %v", err)
+			t.FailNow()
+		}
+
+		expectedDeclarations := []string{"A", "B", "C", "wrapper"}
+		expected := set.New()
+		for _, x := range expectedDeclarations {
+			expected.Add(x)
+		}
+
+		actual := set.New()
+
+		getDeclaredNames(in, actual)
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("simple", simple)
+
+	methods := func(t *testing.T) {
+		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main.go", nil, parser.AllErrors)
+		if err != nil {
+			t.Logf("failing because ParseFile returned error: %v", err)
+			t.FailNow()
+		}
+
+		expectedDeclarations := []string{"Example.A", "Example.B", "Example.C", "wrapper"}
+		expected := set.New()
+		for _, x := range expectedDeclarations {
+			expected.Add(x)
+		}
+
+		actual := set.New()
+		getDeclaredNames(in, actual)
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("methods", methods)
+}
+
+func TestGetCalledNames(t *testing.T) {
+	simple := func(t *testing.T) {
+		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
+		if err != nil {
+			t.Logf("failing because ParseFile returned error: %v", err)
+			t.FailNow()
+		}
+
+		expectedDeclarations := []string{"A", "C", "wrapper"}
+		expected := set.New()
+		for _, x := range expectedDeclarations {
+			expected.Add(x)
+		}
+
+		actual := set.New()
+		getCalledNames(in, actual)
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("simple", simple)
+
+	methods := func(t *testing.T) {
+		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
+		if err != nil {
+			t.Logf("failing because ParseFile returned error: %v", err)
+			t.FailNow()
+		}
+
+		expectedDeclarations := []string{"Example.A", "Example.C", "wrapper"}
+		expected := set.New()
+		for _, x := range expectedDeclarations {
+			expected.Add(x)
+		}
+
+		actual := set.New()
+		getCalledNames(in, actual)
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("methods", methods)
+}
