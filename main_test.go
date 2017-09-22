@@ -6,11 +6,33 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/bouk/monkey"
 	"github.com/stretchr/testify/assert"
 )
+
+////////////////////////////////////////////////////////
+//                                                    //
+//               Test Helper Functions                //
+//                                                    //
+////////////////////////////////////////////////////////
+
+func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string {
+	t.Helper()
+	gopath := os.Getenv("GOPATH")
+	if abs {
+		return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
+	}
+	return strings.Join([]string{"github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
+}
+
+////////////////////////////////////////////////////////
+//                                                    //
+//                   Actual Tests                     //
+//                                                    //
+////////////////////////////////////////////////////////
 
 func TestMainFunc(t *testing.T) {
 	originalArgs := os.Args
@@ -25,6 +47,7 @@ func TestMainFunc(t *testing.T) {
 		main()
 		os.Args = originalArgs
 	}
+	t.Run("optimal", optimal)
 
 	nonexistentPackage := func(t *testing.T) {
 		os.Args = []string{
@@ -53,6 +76,7 @@ func TestMainFunc(t *testing.T) {
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatalf)
 	}
+	t.Run("nonexistent package", nonexistentPackage)
 
 	emptyPackage := func(t *testing.T) {
 		os.Args = []string{
@@ -81,6 +105,7 @@ func TestMainFunc(t *testing.T) {
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatalf)
 	}
+	t.Run("empty package", emptyPackage)
 
 	invalidCodeTest := func(t *testing.T) {
 		os.Args = []string{
@@ -137,6 +162,7 @@ func TestMainFunc(t *testing.T) {
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatal)
 	}
+	t.Run("invalid code", invalidCodeTest)
 
 	invalidArguments := func(t *testing.T) {
 		os.Args = []string{
@@ -161,6 +187,7 @@ func TestMainFunc(t *testing.T) {
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatal)
 	}
+	t.Run("invalid arguments", invalidArguments)
 
 	failsWhenInstructed := func(t *testing.T) {
 		os.Args = []string{
@@ -180,32 +207,5 @@ func TestMainFunc(t *testing.T) {
 		os.Args = originalArgs
 		monkey.Unpatch(log.Fatal)
 	}
-
-	subtests := []subtest{
-		{
-			Message: "optimal",
-			Test:    optimal,
-		},
-		{
-			Message: "nonexistent package",
-			Test:    nonexistentPackage,
-		},
-		{
-			Message: "empty package",
-			Test:    emptyPackage,
-		},
-		{
-			Message: "invalid code",
-			Test:    invalidCodeTest,
-		},
-		{
-			Message: "invalid args",
-			Test:    invalidArguments,
-		},
-		{
-			Message: "fails with --fail-on-found",
-			Test:    failsWhenInstructed,
-		},
-	}
-	runSubtestSuite(t, subtests)
+	t.Run("fails with --fail-on-found", failsWhenInstructed)
 }

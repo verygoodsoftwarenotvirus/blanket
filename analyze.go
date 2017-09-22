@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatih/set"
+	"log"
 )
 
 func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
@@ -105,23 +106,27 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 // FuncLits have bodies that we basically need to explore the same way that we explore a normal function.
 func parseFuncLit(in *ast.FuncLit, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, le := range in.Body.List {
-		switch e := le.(type) {
-		case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
-			parseAssignStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
-		case *ast.DeclStmt: // handles things like `var e Example`
-			parseDeclStmt(e, nameToTypeMap)
-		case *ast.ExprStmt: // handles function calls
-			parseExprStmt(e, nameToTypeMap, out)
-		}
+		parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
 // parseStmt parses a statement. From the go/ast docs:
-// 		 All statement nodes implement the Stmt interface.
+// 		All statement nodes implement the Stmt interface.
+// Cases we don't handle:
+//		BadStmt - we only parse valid code
+//		BlockStmt (sort of, we iterate over these in the form of `x.Body.List`)
+//		these are simply unnecessary:
+//			BranchStmt
+//			EmptyStmt
+//			IncDeclStmt
+//			LabeledStmt
 func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+
 	switch e := in.(type) {
 	case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
 		parseAssignStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+	// NOTE: even though RangeStmt and IfStmt are handled identically, Go will (rightfully) complain when trying
+	// to use a multiple case statement (i.e. `case *ast.RangeStmt, *ast.IfStmt`), so we're doing it this way.
 	case *ast.RangeStmt:
 		for _, x := range e.Body.List {
 			parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
@@ -134,6 +139,23 @@ func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionRetur
 		parseDeclStmt(e, nameToTypeMap)
 	case *ast.ExprStmt: // handles function calls
 		parseExprStmt(e, nameToTypeMap, out)
+	// TODO: implement me
+	case *ast.DeferStmt:
+		log.Println("defer statments not implemented yet. :(")
+	case *ast.ForStmt:
+		log.Println("for statments not implemented yet. :(")
+	case *ast.GoStmt:
+		log.Println("go statments not implemented yet. :(")
+	case *ast.ReturnStmt:
+		log.Println("return statments not implemented yet. :(")
+	case *ast.SelectStmt:
+		log.Println("select statments not implemented yet. :(")
+	case *ast.SendStmt:
+		log.Println("send (<-) statments not implemented yet. :(")
+	case *ast.SwitchStmt:
+		log.Println("switch statments not implemented yet. :(")
+	case *ast.TypeSwitchStmt:
+		log.Println("type switch statments not implemented yet. :(")
 	}
 }
 
