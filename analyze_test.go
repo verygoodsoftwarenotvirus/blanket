@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -10,6 +9,14 @@ import (
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
 )
+
+func parseChunkOfCode(t *testing.T, chunkOfCode string) *ast.File {
+	p, err := parser.ParseFile(token.NewFileSet(), "example.go", chunkOfCode, parser.AllErrors)
+	if err != nil {
+		t.FailNow()
+	}
+	return p
+}
 
 // func TestGetDeclaredNames(t *testing.T) {
 // 	t.Parallel()
@@ -130,11 +137,7 @@ func TestParseCallExpr(t *testing.T) {
 			}
 		`
 
-		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-		if err != nil {
-			t.FailNow()
-		}
-
+		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
@@ -159,11 +162,7 @@ func TestParseCallExpr(t *testing.T) {
 			}
 		`
 
-		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-		if err != nil {
-			t.FailNow()
-		}
-
+		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
 		exampleNameToTypeMap := map[string]string{"s": "Struct"}
 		exampleHelperFunctionMap := map[string][]string{}
@@ -187,11 +186,7 @@ func TestParseCallExpr(t *testing.T) {
 			}
 		`
 
-		p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-		if err != nil {
-			t.FailNow()
-		}
-
+		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt).X.(*ast.CallExpr)
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
@@ -216,11 +211,7 @@ func TestParseUnaryExpr(t *testing.T) {
 			}
 		`
 
-	p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-	if err != nil {
-		t.FailNow()
-	}
-
+	p := parseChunkOfCode(t, codeSample)
 	input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.UnaryExpr)
 	expected := map[string]string{"s": "Struct"}
 	actual := map[string]string{}
@@ -240,11 +231,7 @@ func TestParseDeclStmt(t *testing.T) {
 		}
 	`
 
-	p, err := parser.ParseFile(token.NewFileSet(), "example.go", codeSample, parser.AllErrors)
-	if err != nil {
-		t.FailNow()
-	}
-
+	p := parseChunkOfCode(t, codeSample)
 	input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.DeclStmt)
 	expected := map[string]string{"test": "bool"}
 	actual := map[string]string{}
@@ -258,135 +245,128 @@ func TestParseExprStmt(t *testing.T) {
 	t.Parallel()
 
 	ident := func(t *testing.T) {
-		exampleFunctionName := "function"
-		exampleInput := &ast.ExprStmt{
-			X: &ast.CallExpr{
-				Fun: &ast.Ident{Name: exampleFunctionName},
-			},
-		}
+		codeSample := `
+			package main
+			var example func()
+			func main(){
+				example()
+			}
+		`
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt)
 
 		nameToTypeMap := map[string]string{}
-		expected := set.New(exampleFunctionName)
+		expected := set.New("example")
 		actual := set.New()
 
-		parseExprStmt(exampleInput, nameToTypeMap, actual)
+		parseExprStmt(input, nameToTypeMap, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
+	t.Run("CallExpr.Fun.(*ast.Ident)", ident)
 
 	selector := func(t *testing.T) {
-		exampleVarName := "var"
-		exampleFunctionName := "method"
-		exampleInput := &ast.ExprStmt{
-			X: &ast.CallExpr{
-				Fun: &ast.SelectorExpr{
-					Sel: &ast.Ident{Name: exampleFunctionName},
-					X:   &ast.Ident{Name: exampleVarName},
-				},
-			},
-		}
+		codeSample := `
+			package main
+			type Example struct{}
+			func (e Example) method() {}
+			func main() {
+				var e Example
+				e.method()
+			}
 
-		nameToTypeMap := map[string]string{
-			exampleVarName: "Example",
-		}
+		`
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[2].(*ast.FuncDecl).Body.List[1].(*ast.ExprStmt)
+
+		nameToTypeMap := map[string]string{"e": "Example"}
 		expected := set.New("Example.method")
 		actual := set.New()
 
-		parseExprStmt(exampleInput, nameToTypeMap, actual)
+		parseExprStmt(input, nameToTypeMap, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
 
-	t.Run("CallExpr.Fun.(*ast.Ident)", ident)
 	t.Run("CallExpr.Fun.(*ast.Selector)", selector)
 }
 
 func TestParseGenDecl(t *testing.T) {
 	t.Parallel()
 
+	codeSample := `
+		package main
+		var thing string
+		func main(){}
+	`
+
+	p := parseChunkOfCode(t, codeSample)
+	input := p.Decls[0].(*ast.GenDecl)
 	actual := map[string]string{}
-	exampleInput := &ast.GenDecl{
-		Specs: []ast.Spec{
-			&ast.ValueSpec{
-				Type:  &ast.Ident{Name: "type"},
-				Names: []*ast.Ident{{Name: "name"}},
-			},
-		},
-	}
-	expected := map[string]string{
-		"name": "type",
-	}
+	expected := map[string]string{"thing": "string"}
 
-	parseGenDecl(exampleInput, actual)
+	parseGenDecl(input, actual)
 
-	assert.Equal(t, expected, actual, "expected variable type and name to be inserted into map")
+	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseFuncDecl(t *testing.T) {
 	t.Parallel()
 
 	simple := func(t *testing.T) {
-		exampleFunctionName := "function"
-		exampleInput := &ast.FuncDecl{
-			Name: &ast.Ident{Name: exampleFunctionName},
-		}
+		codeSample := `
+			package test
+			func example(){}
+		`
 
-		expected := set.New(exampleFunctionName)
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl)
+
+		expected := set.New("example")
 		actual := set.New()
 
-		parseFuncDecl(exampleInput, actual)
+		parseFuncDecl(input, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
+	t.Run("simple", simple)
 
 	methodASTIdentType := func(t *testing.T) {
-		exampleStructName := "customObject"
-		exampleFunctionName := "function"
-		exampleInput := &ast.FuncDecl{
-			Name: &ast.Ident{Name: exampleFunctionName},
-			Recv: &ast.FieldList{
-				List: []*ast.Field{
-					{
-						Type: &ast.Ident{Obj: &ast.Object{Name: exampleStructName}},
-					},
-				},
-			},
-		}
+		codeSample := `
+			package test
+			type Example struct{}
+			func (e Example) method(){}
+		`
 
-		expected := set.New(fmt.Sprintf("%s.%s", exampleStructName, exampleFunctionName))
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl)
+
+		expected := set.New("Example.method")
 		actual := set.New()
 
-		parseFuncDecl(exampleInput, actual)
+		parseFuncDecl(input, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
+	t.Run("with receiver", methodASTIdentType)
 
 	methodASTStarExprType := func(t *testing.T) {
-		exampleStructName := "customObject"
-		exampleFunctionName := "function"
-		exampleInput := &ast.FuncDecl{
-			Name: &ast.Ident{Name: exampleFunctionName},
-			Recv: &ast.FieldList{
-				List: []*ast.Field{
-					{
-						Type: &ast.StarExpr{
-							X: &ast.Ident{Name: exampleStructName},
-						},
-					},
-				},
-			},
-		}
+		codeSample := `
+			package test
+			type Example struct{}
+			func (e *Example) method(){}
+		`
 
-		expected := set.New(fmt.Sprintf("%s.%s", exampleStructName, exampleFunctionName))
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl)
+
+		expected := set.New("Example.method")
 		actual := set.New()
 
-		parseFuncDecl(exampleInput, actual)
+		parseFuncDecl(input, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
-
-	t.Run("simple", simple)
-	t.Run("with receiver", methodASTIdentType)
 	t.Run("with ptr receiver", methodASTStarExprType)
 }
 
@@ -394,48 +374,44 @@ func TestParseAssignStmt(t *testing.T) {
 	t.Parallel()
 
 	callExpr := func(t *testing.T) {
-		exampleInput := &ast.AssignStmt{
-			Lhs: []ast.Expr{
-				&ast.Ident{Name: "x"},
-			},
-			Rhs: []ast.Expr{
-				&ast.CallExpr{
-					Fun: &ast.Ident{Name: "method"},
-				},
-			},
-		}
+		codeSample := `
+			package main
+			import "testing"
+			func example() error {
+				return nil
+			}
+			func test() {
+				e := example()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[2].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
 
 		exampleNameToTypeMap := map[string]string{}
 		exampleHelperFunctionMap := map[string][]string{}
 
 		actual := set.New()
-		expected := set.New("method")
+		expected := set.New("example")
 
-		parseAssignStmt(exampleInput, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
+		parseAssignStmt(input, exampleNameToTypeMap, exampleHelperFunctionMap, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
+	t.Run("CallExpr", callExpr)
 
 	callExprWithMultipleReturnsAndIdent := func(t *testing.T) {
-		exampleHelperFunctionName := "helperFunction"
-		exampleInput := &ast.AssignStmt{
-			Lhs: []ast.Expr{
-				&ast.Ident{Name: "x"},
-				&ast.Ident{Name: "y"},
-			},
-			Rhs: []ast.Expr{
-				&ast.CallExpr{
-					Fun: &ast.Ident{Name: exampleHelperFunctionName},
-				},
-			},
-		}
+		// this case handles when a helper function is declared in another file.
+		codeSample := `
+			package main
+			import "testing"
+			func TestX() {
+				x, y := example()
+			}
+		`
 
-		exampleHelperFunctionMap := map[string][]string{
-			exampleHelperFunctionName: {
-				"X",
-				"Y",
-			},
-		}
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
 
 		s := set.New()
 		actual := map[string]string{}
@@ -443,119 +419,121 @@ func TestParseAssignStmt(t *testing.T) {
 			"x": "X",
 			"y": "Y",
 		}
-
-		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, s)
-
-		assert.Equal(t, expected, actual, "actual output does not match expected output")
-	}
-
-	callExprWithMultipleReturnsAndSelectorExpr := func(t *testing.T) {
-		// FIXME: I'm not certain this test does what I think it should be doing.
-		exampleHelperFunctionName := "helperFunction"
-		exampleInput := &ast.AssignStmt{
-			Lhs: []ast.Expr{
-				&ast.Ident{Name: "x"},
-				&ast.Ident{Name: "y"},
-			},
-			Rhs: []ast.Expr{
-				&ast.CallExpr{
-					Fun: &ast.SelectorExpr{
-						X:   &ast.Ident{Name: "name"},
-						Sel: &ast.Ident{Name: exampleHelperFunctionName},
-					},
-				},
-			},
-		}
-
 		exampleHelperFunctionMap := map[string][]string{
-			exampleHelperFunctionName: {
+			"example": {
 				"X",
 				"Y",
 			},
 		}
 
-		out := set.New()
-		actual := map[string]string{}
-		expected := map[string]string{
-			"x": "X",
-			"y": "Y",
-		}
-
-		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
+		parseAssignStmt(input, actual, exampleHelperFunctionMap, s)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
+	t.Run("CallExpr with multiple returns and ast.Ident Fun value", callExprWithMultipleReturnsAndIdent)
+
+	callExprWithUnfamiliarSelectorExprAndMultipleReturn := func(t *testing.T) {
+		codeSample := `
+			package main
+			import "testing"
+			func TestX() {
+				req, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+
+		s := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{}
+		exampleHelperFunctionMap := map[string][]string{}
+
+		parseAssignStmt(input, actual, exampleHelperFunctionMap, s)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+
+	t.Run("Assign statement with multiple returns from some external function", callExprWithUnfamiliarSelectorExprAndMultipleReturn)
+
+	callExprWithKnownSelectorExprAndMultipleReturn := func(t *testing.T) {
+		codeSample := `
+			package main
+			import "testing"
+			func TestX() {
+				req, err := someHelperFunctionForTestsOnly()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+
+		s := set.New()
+		actual := map[string]string{}
+		expected := map[string]string{
+			"req": "http.Request",
+			"err": "error",
+		}
+		exampleHelperFunctionMap := map[string][]string{
+			"someHelperFunctionForTestsOnly": {
+				"http.Request",
+				"error",
+			},
+		}
+
+		parseAssignStmt(input, actual, exampleHelperFunctionMap, s)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("Assign statement with multiple returns from some internal function", callExprWithKnownSelectorExprAndMultipleReturn)
 
 	unaryExpr := func(t *testing.T) {
-		// FIXME: I'm not certain this test does what I think it should be doing.
-		exampleHelperFunctionName := "helperFunction"
-		exampleExprName := "expression"
-		exampleInput := &ast.AssignStmt{
-			Lhs: []ast.Expr{
-				&ast.Ident{Name: "x"},
-				&ast.Ident{Name: "y"},
-			},
-			Rhs: []ast.Expr{
-				&ast.UnaryExpr{
-					X: &ast.CompositeLit{
-						Type: &ast.Ident{Name: exampleExprName},
-					},
-				},
-			},
-		}
+		codeSample := `
+			package main
+			import "testing"
+			func TestX(t *testing.T) {
+				test := &SomeStruct{}
+			}
+		`
 
-		exampleHelperFunctionMap := map[string][]string{
-			exampleHelperFunctionName: {
-				"X",
-				"Y",
-			},
-		}
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+
+		exampleHelperFunctionMap := map[string][]string{}
 
 		out := set.New()
 		actual := map[string]string{}
 		expected := map[string]string{
-			"x": "expression",
+			"test": "SomeStruct",
 		}
 
-		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
+		parseAssignStmt(input, actual, exampleHelperFunctionMap, out)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
+	t.Run("UnaryExpr", unaryExpr)
 
 	functionLiteral := func(t *testing.T) {
-		// FIXME: I'm not certain this test does what I think it should be doing.
-		exampleHelperFunctionName := "helperFunction"
-		exampleInput := &ast.AssignStmt{
-			Lhs: []ast.Expr{
-				&ast.Ident{Name: "x"},
-				&ast.Ident{Name: "y"},
-			},
-			Rhs: []ast.Expr{
-				&ast.FuncLit{
-					Body: &ast.BlockStmt{},
-				},
-			},
-		}
+		codeSample := `
+		 	package main
+		 	import "testing"
+		 	func TestX(t *testing. T) {
+		 		subtest := func(t *testing.T) {}
+		 		t.Run("subtest", subtest)
+		 	}
+		 `
 
-		exampleHelperFunctionMap := map[string][]string{
-			exampleHelperFunctionName: {
-				"X",
-				"Y",
-			},
-		}
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
 
 		out := set.New()
+		exampleHelperFunctionMap := map[string][]string{}
 		actual := map[string]string{}
 		expected := map[string]string{}
 
-		parseAssignStmt(exampleInput, actual, exampleHelperFunctionMap, out)
+		parseAssignStmt(input, actual, exampleHelperFunctionMap, out)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
-
-	t.Run("CallExpr", callExpr)
-	t.Run("CallExpr with multiple returns and ast.Ident Fun value", callExprWithMultipleReturnsAndIdent)
-	t.Run("CallExpr with multiple returns and ast.SelectorExpr Fun value", callExprWithMultipleReturnsAndSelectorExpr)
-	t.Run("UnaryExpr", unaryExpr)
 	t.Run("FuncLit", functionLiteral)
 }
