@@ -3,7 +3,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -30,12 +29,6 @@ var analyzeCmd = &cobra.Command{
 	Use:   "analyze",
 	Short: "Analyze a given package",
 	Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if analyzePackage == "" {
-			return errors.New("the required flag `-p, --package` was not specified")
-		}
-		return nil
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		analyze(analyzePackage, failOnFinding)
 	},
@@ -102,7 +95,6 @@ func analyze(analyzePackage string, failOnFinding bool) {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }

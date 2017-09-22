@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"errors"
 	"github.com/bouk/monkey"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,6 +48,31 @@ func init() {
 func TestFuncMain(t *testing.T) {
 	originalArgs := os.Args
 
+	directoryWoes := func(t *testing.T) {
+		monkey.Patch(os.Getwd, func() (string, error) {
+			return "", errors.New("pineapple on pizza")
+		})
+
+		var fatalfCalled bool
+		defer func() {
+			if r := recover(); r != nil {
+				// recovered from our monkey patched log.Fatalf
+				fatalfCalled = true
+			}
+		}()
+
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+		}
+
+		main()
+		os.Args = originalArgs
+		assert.True(t, fatalfCalled, "main should call log.Fatalf() when it can't manage to retrieve the current directory")
+		monkey.Unpatch(os.Getwd)
+	}
+	t.Run("test", directoryWoes)
+
 	optimal := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
@@ -76,7 +102,7 @@ func TestFuncMain(t *testing.T) {
 		}()
 
 		main()
-		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-found is passed in and extras are found")
+		assert.True(t, fatalfCalled, "main should call log.Fatalf() when the package dir doesn't exist")
 		os.Args = originalArgs
 	}
 	t.Run("nonexistent package", nonexistentPackage)
@@ -98,7 +124,7 @@ func TestFuncMain(t *testing.T) {
 		}()
 
 		main()
-		assert.True(t, fatalfCalled, "main should call log.Fatalf() when --fail-on-found is passed in and extras are found")
+		assert.True(t, fatalfCalled, "main should call log.Fatalf() when the package dir has no go files in it")
 		os.Args = originalArgs
 	}
 	t.Run("empty package", emptyPackage)
@@ -148,16 +174,13 @@ func TestFuncMain(t *testing.T) {
 		}()
 
 		main()
-		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
+		assert.True(t, fatalCalled, "main should call log.Fatal() when there is uncompilable code in the package dir")
 		os.Args = originalArgs
 	}
 	t.Run("invalid code", invalidCodeTest)
 
 	invalidArguments := func(t *testing.T) {
-		os.Args = []string{
-			originalArgs[0],
-			"analyze",
-		}
+		originalArgs := os.Args
 
 		var fatalCalled bool
 		defer func() {
@@ -168,9 +191,14 @@ func TestFuncMain(t *testing.T) {
 			}
 		}()
 
+		os.Args = []string{
+			originalArgs[0],
+			"fail plz",
+		}
+
 		main()
-		assert.True(t, fatalCalled, "main should call log.Fatal when invalid arguments are passed to analyze")
 		os.Args = originalArgs
+		assert.True(t, fatalCalled, "main should call log.Fatal when arguments are completely invalid")
 	}
 	t.Run("invalid arguments", invalidArguments)
 
