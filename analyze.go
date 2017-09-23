@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatih/set"
+	"go/token"
 )
 
 func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
@@ -238,18 +239,29 @@ func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionRetur
 	}
 }
 
-func getDeclaredNames(in *ast.File, out *set.Set) {
+func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]TarpFunc) {
 	for _, d := range in.Decls {
 		switch f := d.(type) {
 		case *ast.FuncDecl:
-			parseFuncDecl(f, out)
+			declPos := fileset.Position(f.Type.Func)
+			lbracePos := fileset.Position(f.Body.Lbrace)
+			rbracePos := fileset.Position(f.Body.Rbrace)
+			functionName := parseFuncDecl(f)
+
+			declaredFuncDetails[functionName] = TarpFunc{
+				Name:      functionName,
+				Filename: declPos.Filename,
+				DeclPos:   declPos,
+				RBracePos: rbracePos,
+				LBracePos: lbracePos,
+			}
 		}
 	}
 }
 
 // parseFuncDecl parses function declarations. From the go/ast docs:
 //		A FuncDecl node represents a function declaration.
-func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
+func parseFuncDecl(f *ast.FuncDecl) string {
 	functionName := f.Name.Name // "Avoid Stutter" lol
 	var parentName string
 	if f.Recv != nil {
@@ -262,10 +274,10 @@ func parseFuncDecl(f *ast.FuncDecl, out *set.Set) {
 	}
 
 	if parentName != "" {
-		out.Add(fmt.Sprintf("%s.%s", parentName, functionName))
-	} else {
-		out.Add(functionName)
+		return fmt.Sprintf("%s.%s", parentName, functionName)
 	}
+	return functionName
+
 }
 
 func getCalledNames(in *ast.File, out *set.Set) {

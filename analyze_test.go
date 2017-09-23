@@ -217,10 +217,8 @@ func TestParseFuncDecl(t *testing.T) {
 		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[0].(*ast.FuncDecl)
 
-		expected := set.New("example")
-		actual := set.New()
-
-		parseFuncDecl(input, actual)
+		expected := "example"
+		actual := parseFuncDecl(input)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -236,10 +234,8 @@ func TestParseFuncDecl(t *testing.T) {
 		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[1].(*ast.FuncDecl)
 
-		expected := set.New("Example.method")
-		actual := set.New()
-
-		parseFuncDecl(input, actual)
+		expected := "Example.method"
+		actual := parseFuncDecl(input)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -255,10 +251,8 @@ func TestParseFuncDecl(t *testing.T) {
 		p := parseChunkOfCode(t, codeSample)
 		input := p.Decls[1].(*ast.FuncDecl)
 
-		expected := set.New("Example.method")
-		actual := set.New()
-
-		parseFuncDecl(input, actual)
+		expected := "Example.method"
+		actual := parseFuncDecl(input)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -682,15 +676,23 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"A", "B", "C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
+		expected := map[string]TarpFunc{
+			"A": {
+				Name: "A",
+			},
+			"B": {
+				Name: "B",
+			},
+			"C": {
+				Name: "C",
+			},
+			"wrapper": {
+				Name: "wrapper",
+			},
 		}
-
-		actual := set.New()
-
-		getDeclaredNames(in, actual)
+		fileset := token.NewFileSet()
+		actual := map[string]TarpFunc{}
+		getDeclaredNames(in, fileset, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}
@@ -703,14 +705,23 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"Example.A", "Example.B", "Example.C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
+		expected := map[string]TarpFunc{
+			"Example.A": {
+				Name: "Example.A",
+			},
+			"Example.B": {
+				Name: "Example.B",
+			},
+			"Example.C": {
+				Name: "Example.C",
+			},
+			"wrapper": {
+				Name: "wrapper",
+			},
 		}
-
-		actual := set.New()
-		getDeclaredNames(in, actual)
+		fileset := token.NewFileSet()
+		actual := map[string]TarpFunc{}
+		getDeclaredNames(in, fileset, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}

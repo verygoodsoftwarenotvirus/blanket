@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -36,6 +37,8 @@ func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string 
 ////////////////////////////////////////////////////////
 
 func init() {
+	log.SetOutput(ioutil.Discard)
+
 	monkey.Patch(log.Fatalf, func(string, ...interface{}) {
 		panic("log.Fatalf")
 	})
@@ -209,19 +212,17 @@ func TestFuncMain(t *testing.T) {
 			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "simple", false)),
 			"--fail-on-found",
 		}
+		var exitCalled bool
 
-		var fatalCalled bool
-		defer func() {
-			// recovered from our monkey patched log.Fatal
-			if r := recover(); r != nil {
-				fatalCalled = true
-				assert.True(t, true)
-			}
-		}()
+		monkey.Patch(os.Exit, func(code int) {
+			exitCalled = true
+			assert.Equal(t, 1, code, "os.Exit should be called with 1")
+		})
 
 		main()
-		assert.True(t, fatalCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
+		assert.True(t, exitCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
 		os.Args = originalArgs
+		monkey.Unpatch(os.Exit)
 	}
 	t.Run("fails with --fail-on-found", failsWhenInstructed)
 }
