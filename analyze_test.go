@@ -553,6 +553,9 @@ func TestParseStmt(t *testing.T) {
 			func TestX(t *testing.T) string {
 				// AssignStmt:
 				tmp := "AssignStmt"
+				foo := Foo{}
+				bar := bar.Bar{}
+				baz := &baz.Baz{}
 				var x Example
 
 				// RangeStmt

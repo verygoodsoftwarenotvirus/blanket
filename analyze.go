@@ -34,11 +34,13 @@ func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunc
 
 // parseUnaryExpr parses Unary expressions. From the go/ast docs:
 //      A UnaryExpr node represents a unary expression. Unary "*" expressions are represented via StarExpr nodes.
-// (handles declarations like `callExpr := &ast.CallExpr`)
+// (handles declarations like `callExpr := &ast.UnaryExpr{}` or `callExpr := ast.UnaryExpr{}`)
 func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string) {
 	switch u := in.X.(*ast.CompositeLit).Type.(type) {
 	case *ast.Ident:
 		nameToTypeMap[varName] = u.Name
+	case *ast.SelectorExpr:
+		nameToTypeMap[varName] = u.Sel.Name
 	}
 }
 
@@ -250,7 +252,7 @@ func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails 
 
 			declaredFuncDetails[functionName] = TarpFunc{
 				Name:      functionName,
-				Filename: declPos.Filename,
+				Filename:  declPos.Filename,
 				DeclPos:   declPos,
 				RBracePos: rbracePos,
 				LBracePos: lbracePos,

@@ -3,24 +3,36 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"go/parser"
 	"go/token"
-	"sort"
-	"text/template"
-	"bytes"
-	"unicode/utf8"
 	"log"
 	"os"
+	"sort"
 	"strings"
+	"text/template"
+	"unicode/utf8"
 
 	"github.com/fatih/set"
 	"github.com/spf13/cobra"
-	"fmt"
+)
+
+const (
+	differenceReportTmpl = `The following functions are declared, but don't appear to have direct unit tests:{{range $filename, $missing := .}}
+in {{$filename}}:{{range $missing}}
+	{{pad .Name}} on line {{.DeclPos.Line}}{{end}}{{end}}
+`
 )
 
 var (
+	// flags
+	debug          bool
 	failOnFinding  bool
 	analyzePackage string
+
+	// helper variables
+	fileset *token.FileSet
 )
 
 var rootCmd = &cobra.Command{
@@ -40,8 +52,11 @@ var analyzeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "log various details about the parsing process")
 	analyzeCmd.Flags().BoolVarP(&failOnFinding, "fail-on-found", "f", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", ".", "Package to run analyze on. Defaults to the current directory.")
+
+	fileset = token.NewFileSet()
 }
 
 func analyze(analyzePackage string, failOnFinding bool) {
@@ -61,7 +76,6 @@ func analyze(analyzePackage string, failOnFinding bool) {
 		log.Fatalf("packageDir doesn't exist: %s", pkgDir)
 	}
 
-	fileset := token.NewFileSet()
 	astPkg, err := parser.ParseDir(fileset, pkgDir, nil, parser.AllErrors)
 	if err != nil {
 		log.Fatal(err)
@@ -76,6 +90,9 @@ func analyze(analyzePackage string, failOnFinding bool) {
 
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
+			if debug {
+				log.Printf("parsing %s", name)
+			}
 			isTest := strings.HasSuffix(name, "_test.go")
 			if isTest {
 				getCalledNames(f, calledFuncs)
@@ -112,12 +129,8 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 	}
 	sort.Sort(missingFuncs)
 	byFilename := map[string][]TarpFunc{}
-	for _, tf := range *missingFuncs{
-		if _, ok := byFilename[tf.Filename]; !ok {
-			byFilename[tf.Filename] = []TarpFunc{tf}
-		} else {
-			byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
-		}
+	for _, tf := range *missingFuncs {
+		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
 	}
 
 	funcMap := template.FuncMap{
@@ -132,12 +145,7 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 		},
 	}
 
-	differenceReportTmpl := `The following functions are declared, but don't appear to have direct unit tests:{{range $filename, $missing := .}}
-{{$filename}}:{{range $missing}}
-	{{pad .Name}} on line {{.DeclPos.Line}}{{end}}{{end}}
-`
-	t := template.New("t").Funcs(funcMap)
-	t, err := t.Parse(differenceReportTmpl)
+	t, err := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
 	if err != nil {
 		panic(err)
 	}
@@ -148,7 +156,6 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 	}
 	return tpl.String()
 }
-
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
