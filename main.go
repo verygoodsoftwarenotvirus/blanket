@@ -59,7 +59,6 @@ func init() {
 	fileset = token.NewFileSet()
 }
 
-
 func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) string {
 	longestFunctionNameLength := 0
 	missingFuncs := &TarpDetails{}
@@ -99,7 +98,6 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 	return tpl.String()
 }
 
-
 func analyze(analyzePackage string, failOnFinding bool) {
 	gopath := os.Getenv("GOPATH")
 
@@ -128,15 +126,17 @@ func analyze(analyzePackage string, failOnFinding bool) {
 
 	declaredFuncInfo := map[string]TarpFunc{}
 	calledFuncs := set.New("init")
+	helperFunctionReturnMap := map[string][]string{}
+	nameToTypeMap := map[string]string{}
 
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
 			if debug {
 				log.Printf("parsing %s", name)
 			}
-			isTest := strings.HasSuffix(name, "_test.go")
-			if isTest {
-				getCalledNames(f, calledFuncs)
+
+			if strings.HasSuffix(name, "_test.go") {
+				getCalledNames(f, nameToTypeMap, helperFunctionReturnMap, calledFuncs)
 			} else {
 				getDeclaredNames(f, fileset, declaredFuncInfo)
 			}

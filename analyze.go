@@ -113,7 +113,7 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 		case *ast.UnaryExpr:
 			parseUnaryExpr(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.CompositeLit:
-			if j < len(leftHandSide) - 1 {
+			if len(leftHandSide) > j {
 				parseCompositeLit(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
 			} else {
 				parseCompositeLit(t, "", nameToTypeMap, helperFunctionReturnMap, out)
@@ -321,9 +321,7 @@ func parseFuncDecl(f *ast.FuncDecl) string {
 
 }
 
-func getCalledNames(in *ast.File, out *set.Set) {
-	helperFunctionReturnMap := map[string][]string{}
-	nameToTypeMap := map[string]string{}
+func getCalledNames(in *ast.File, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, d := range in.Decls {
 		switch n := d.(type) {
 		case *ast.GenDecl:
