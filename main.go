@@ -59,6 +59,47 @@ func init() {
 	fileset = token.NewFileSet()
 }
 
+
+func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) string {
+	longestFunctionNameLength := 0
+	missingFuncs := &TarpDetails{}
+	for _, s := range diff {
+		if utf8.RuneCountInString(s) > longestFunctionNameLength {
+			longestFunctionNameLength = len(s)
+		}
+		*missingFuncs = append(*missingFuncs, declaredFuncInfo[s])
+	}
+	sort.Sort(missingFuncs)
+	byFilename := map[string][]TarpFunc{}
+	for _, tf := range *missingFuncs {
+		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
+	}
+
+	funcMap := template.FuncMap{
+		// The name "title" is what the function will be called in the template text.
+		"pad": func(s string) string {
+			// https://github.com/willf/pad/blob/master/pad.go
+			numberOfSpacesToAdd := longestFunctionNameLength - utf8.RuneCountInString(s)
+			for i := 0; i < numberOfSpacesToAdd; i++ {
+				s += " "
+			}
+			return s
+		},
+	}
+
+	t, err := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
+	if err != nil {
+		panic(err)
+	}
+
+	var tpl bytes.Buffer
+	if err = t.Execute(&tpl, byFilename); err != nil {
+		panic(err)
+	}
+	return tpl.String()
+}
+
+
 func analyze(analyzePackage string, failOnFinding bool) {
 	gopath := os.Getenv("GOPATH")
 
@@ -116,45 +157,6 @@ func analyze(analyzePackage string, failOnFinding bool) {
 			os.Exit(1)
 		}
 	}
-}
-
-func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) string {
-	longestFunctionNameLength := 0
-	missingFuncs := &TarpDetails{}
-	for _, s := range diff {
-		if utf8.RuneCountInString(s) > longestFunctionNameLength {
-			longestFunctionNameLength = len(s)
-		}
-		*missingFuncs = append(*missingFuncs, declaredFuncInfo[s])
-	}
-	sort.Sort(missingFuncs)
-	byFilename := map[string][]TarpFunc{}
-	for _, tf := range *missingFuncs {
-		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
-	}
-
-	funcMap := template.FuncMap{
-		// The name "title" is what the function will be called in the template text.
-		"pad": func(s string) string {
-			// https://github.com/willf/pad/blob/master/pad.go
-			numberOfSpacesToAdd := longestFunctionNameLength - utf8.RuneCountInString(s)
-			for i := 0; i < numberOfSpacesToAdd; i++ {
-				s += " "
-			}
-			return s
-		},
-	}
-
-	t, err := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
-	if err != nil {
-		panic(err)
-	}
-
-	var tpl bytes.Buffer
-	if err = t.Execute(&tpl, byFilename); err != nil {
-		panic(err)
-	}
-	return tpl.String()
 }
 
 func main() {

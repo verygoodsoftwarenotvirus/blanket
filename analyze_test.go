@@ -106,10 +106,12 @@ func TestParseUnaryExpr(t *testing.T) {
 
 	p := parseChunkOfCode(t, codeSample)
 	input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.UnaryExpr)
-	expected := map[string]string{"s": "Struct"}
+	s := set.New()
+	helperFunctionReturnMap := map[string][]string{}
 	actual := map[string]string{}
+	expected := map[string]string{"s": "Struct"}
 
-	parseUnaryExpr(input, "s", actual)
+	parseUnaryExpr(input, "s", actual, helperFunctionReturnMap, s)
 
 	assert.Equal(t, expected, actual, "actual output does not match expected output")
 }
@@ -454,7 +456,7 @@ func TestParseAssignStmt(t *testing.T) {
 	t.Run("FuncLit", functionLiteral)
 }
 
-func TestParseFuncDeclCall(t *testing.T) {
+func TestParseTestFuncDecl(t *testing.T) {
 	t.Parallel()
 
 	ptrAndNonPtrReturns := func(t *testing.T) {
@@ -479,7 +481,7 @@ func TestParseFuncDeclCall(t *testing.T) {
 			},
 		}
 
-		parseFuncDeclCall(input, nameToTypeMap, actual, out)
+		parseTestFuncDecl(input, nameToTypeMap, actual, out)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -504,7 +506,7 @@ func TestParseFuncDeclCall(t *testing.T) {
 			"helperBuilder": {"pkg.Example"},
 		}
 
-		parseFuncDeclCall(input, nameToTypeMap, actual, out)
+		parseTestFuncDecl(input, nameToTypeMap, actual, out)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
@@ -628,8 +630,20 @@ func TestParseStmt(t *testing.T) {
 					}
 				}(tmp)
 
+				n := []string{
+					N(),
+				}
+
+				o := &Example{
+					o: O(),
+				}
+
+				p := &Example{
+					P(),
+				}
+
 				// ReturnStmt
-				return N()
+				return Q()
 			}
 		`
 
@@ -653,6 +667,9 @@ func TestParseStmt(t *testing.T) {
 			"L",
 			"M",
 			"N",
+			"O",
+			"P",
+			"Q",
 			"make",
 			"Example.MethodOne",
 			"Example.MethodTwo",
@@ -664,6 +681,8 @@ func TestParseStmt(t *testing.T) {
 			parseStmt(input, nameToTypeMap, helperFunctionMap, actual)
 		}
 
+		diff := set.StringSlice(set.Difference(expected, actual))
+		assert.Empty(t, diff, "diff should be empty")
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
 	t.Run("all", all)
@@ -718,6 +737,15 @@ func TestGetDeclaredNames(t *testing.T) {
 			"Example.C": {
 				Name: "Example.C",
 			},
+			"Example.D": {
+				Name: "Example.D",
+			},
+			"Example.E": {
+				Name: "Example.E",
+			},
+			"Example.F": {
+				Name: "Example.F",
+			},
 			"wrapper": {
 				Name: "wrapper",
 			},
@@ -732,6 +760,8 @@ func TestGetDeclaredNames(t *testing.T) {
 }
 
 func TestGetCalledNames(t *testing.T) {
+	t.Parallel()
+
 	simple := func(t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
 		if err != nil {
@@ -759,12 +789,14 @@ func TestGetCalledNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"Example.A", "Example.C", "wrapper"}
-		expected := set.New()
-		for _, x := range expectedDeclarations {
-			expected.Add(x)
-		}
-
+		expected := set.New(
+			"Example.A",
+			"Example.B",
+			"Example.C",
+			"Example.D",
+			"Example.E",
+			"wrapper",
+		)
 		actual := set.New()
 		getCalledNames(in, actual)
 

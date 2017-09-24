@@ -35,8 +35,20 @@ func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunc
 // parseUnaryExpr parses Unary expressions. From the go/ast docs:
 //      A UnaryExpr node represents a unary expression. Unary "*" expressions are represented via StarExpr nodes.
 // (handles declarations like `callExpr := &ast.UnaryExpr{}` or `callExpr := ast.UnaryExpr{}`)
-func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string) {
-	switch u := in.X.(*ast.CompositeLit).Type.(type) {
+func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+	cl := in.X.(*ast.CompositeLit)
+	for _, e := range cl.Elts {
+		switch et := e.(type) {
+		case *ast.CallExpr:
+			parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+		case *ast.KeyValueExpr:
+			switch vt := et.Value.(type) {
+			case *ast.CallExpr:
+				parseCallExpr(vt, nameToTypeMap, helperFunctionReturnMap, out)
+			}
+		}
+	}
+	switch u := cl.Type.(type) {
 	case *ast.Ident:
 		nameToTypeMap[varName] = u.Name
 	case *ast.SelectorExpr:
@@ -66,6 +78,22 @@ func parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, helperFunc
 	}
 }
 
+func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+	for _, e := range in.Elts {
+		switch et := e.(type) {
+		case *ast.CallExpr:
+			parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+		}
+	}
+
+	switch t := in.Type.(type) {
+	case *ast.Ident:
+		nameToTypeMap[varName] = t.Name
+	case *ast.SelectorExpr:
+		nameToTypeMap[varName] = t.Sel.Name
+	}
+}
+
 // parseAssignStmt handles AssignStmt nodes. From the go/ast docs:
 //    An AssignStmt node represents an assignment or a short variable declaration
 func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
@@ -83,7 +111,13 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 		case *ast.FuncLit:
 			parseFuncLit(t, nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.UnaryExpr:
-			parseUnaryExpr(t, leftHandSide[j], nameToTypeMap)
+			parseUnaryExpr(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
+		case *ast.CompositeLit:
+			if j < len(leftHandSide) - 1 {
+				parseCompositeLit(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
+			} else {
+				parseCompositeLit(t, "", nameToTypeMap, helperFunctionReturnMap, out)
+			}
 		case *ast.CallExpr:
 			if len(in.Rhs) != len(in.Lhs) {
 				var functionName string
@@ -104,28 +138,33 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 	}
 }
 
-// parseFuncDeclCall parses function declarations that don't fit the testing function shape. The purpose of this is to catch
-// functions that authors may build to generate certain values for tests.
-func parseFuncDeclCall(in *ast.FuncDecl, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	functionName := in.Name.Name
-	if !strings.HasPrefix(functionName, "Test") {
-		if in.Type.Results != nil {
-			for _, r := range in.Type.Results.List {
-				switch rt := r.Type.(type) {
-				case *ast.StarExpr:
-					switch x := rt.X.(type) {
-					case *ast.Ident:
-						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Name)
-					case *ast.SelectorExpr:
-						pkgName := x.X.(*ast.Ident).Name
-						pkgStruct := x.Sel.Name
-						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
-					}
+	if in.Type.Results != nil {
+		for _, r := range in.Type.Results.List {
+			switch rt := r.Type.(type) {
+			case *ast.StarExpr:
+				switch x := rt.X.(type) {
 				case *ast.Ident:
-					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
+					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Name)
+				case *ast.SelectorExpr:
+					pkgName := x.X.(*ast.Ident).Name
+					pkgStruct := x.Sel.Name
+					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
 				}
+			case *ast.Ident:
+				helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
 			}
 		}
+	}
+}
+
+// parseTestFuncDecl parses function declarations that don't fit the testing function shape. The purpose of this is to catch
+// functions that authors may build to generate certain values for tests.
+func parseTestFuncDecl(in *ast.FuncDecl, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+	functionName := in.Name.Name
+	if !strings.HasPrefix(functionName, "Test") {
+		parseHelperFunction(in, helperFunctionReturnMap, out)
 	}
 	for _, le := range in.Body.List {
 		parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
@@ -290,7 +329,7 @@ func getCalledNames(in *ast.File, out *set.Set) {
 		case *ast.GenDecl:
 			parseGenDecl(n, nameToTypeMap)
 		case *ast.FuncDecl:
-			parseFuncDeclCall(n, nameToTypeMap, helperFunctionReturnMap, out)
+			parseTestFuncDecl(n, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
 }

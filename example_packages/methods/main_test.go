@@ -5,8 +5,7 @@ import (
 )
 
 var (
-	f Example
-	g Example
+	a Example
 )
 
 func helperGenerator(t *testing.T) (*Example, error) {
@@ -15,24 +14,30 @@ func helperGenerator(t *testing.T) (*Example, error) {
 }
 
 func TestA(t *testing.T) {
-	t.Parallel()
-	var e Example
-	e.A()
+	a.A()
+}
+
+func TestB(t *testing.T) {
+	b := Example{}
+	b.B()
 }
 
 func TestC(t *testing.T) {
-	x, err := helperGenerator(t)
-	if err != nil {
-		t.FailNow()
-	}
-	x.C()
+	c := &Example{}
+	c.D()
+
 }
 
-//func TestCAgain(t *testing.T) {
-//	f.C()
-//}
+func TestD(t *testing.T) {
+	d, _ := helperGenerator(t)
+	d.C()
+}
+
+func TestE(t *testing.T) {
+	var e Example
+	e.E()
+}
 
 func TestWrapper(t *testing.T) {
-	e := &Example{}
-	wrapper(e)
+	wrapper(&Example{})
 }
