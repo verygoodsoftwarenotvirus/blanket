@@ -49,8 +49,7 @@ func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]
 			case *ast.CallExpr:
 				parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 			case *ast.KeyValueExpr:
-				switch vt := et.Value.(type) {
-				case *ast.CallExpr:
+				if vt, ok := et.Value.(*ast.CallExpr); ok {
 					parseCallExpr(vt, nameToTypeMap, helperFunctionReturnMap, out)
 				}
 			}
@@ -92,8 +91,7 @@ func parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, helperFunc
 
 func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, e := range in.Elts {
-		switch et := e.(type) {
-		case *ast.CallExpr:
+		if et, ok := e.(*ast.CallExpr); ok {
 			parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
@@ -111,9 +109,8 @@ func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[s
 func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	leftHandSide := []string{}
 	for i := range in.Lhs {
-		switch v := in.Lhs[i].(type) {
-		case *ast.Ident:
-			varName := v.Name
+		if l, ok := in.Lhs[i].(*ast.Ident); ok {
+			varName := l.Name
 			leftHandSide = append(leftHandSide, varName)
 		}
 	}
@@ -198,8 +195,7 @@ func parseFuncLit(in *ast.FuncLit, nameToTypeMap map[string]string, helperFuncti
 
 func parseReturnStmt(in *ast.ReturnStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, x := range in.Results {
-		switch y := x.(type) {
-		case *ast.CallExpr:
+		if y, ok := x.(*ast.CallExpr); ok {
 			parseExpr(y.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
@@ -207,8 +203,7 @@ func parseReturnStmt(in *ast.ReturnStmt, nameToTypeMap map[string]string, helper
 
 func parseSelectStmt(in *ast.SelectStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, x := range in.Body.List {
-		switch y := x.(type) {
-		case *ast.CommClause:
+		if y, ok := x.(*ast.CommClause); ok {
 			for _, z := range y.Body {
 				parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
 			}
@@ -218,16 +213,14 @@ func parseSelectStmt(in *ast.SelectStmt, nameToTypeMap map[string]string, helper
 
 // parseSendStmt parses a send statement. (<-)
 func parseSendStmt(in *ast.SendStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	switch n := in.Value.(type) {
-	case *ast.CallExpr:
+	if n, ok := in.Value.(*ast.CallExpr); ok {
 		parseCallExpr(n, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
 func parseSwitchStmt(in *ast.SwitchStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, x := range in.Body.List {
-		switch y := x.(type) {
-		case *ast.CaseClause:
+		if y, ok := x.(*ast.CaseClause); ok {
 			for _, z := range y.Body {
 				parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
 			}
@@ -237,11 +230,12 @@ func parseSwitchStmt(in *ast.SwitchStmt, nameToTypeMap map[string]string, helper
 
 // parseTypeSwitchStmt parses
 func parseTypeSwitchStmt(in *ast.TypeSwitchStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	for _, x := range in.Body.List {
-		switch y := x.(type) {
-		case *ast.CaseClause:
-			for _, z := range y.Body {
-				parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
+	if in.Body != nil {
+		for _, x := range in.Body.List {
+			if y, ok := x.(*ast.CaseClause); ok {
+				for _, z := range y.Body {
+					parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
+				}
 			}
 		}
 	}
@@ -298,8 +292,7 @@ func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionRetur
 
 func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]TarpFunc) {
 	for _, d := range in.Decls {
-		switch f := d.(type) {
-		case *ast.FuncDecl:
+		if f, ok := d.(*ast.FuncDecl); ok {
 			declPos := fileset.Position(f.Type.Func)
 			functionName := parseFuncDecl(f)
 
@@ -356,8 +349,7 @@ func getCalledNames(in *ast.File, nameToTypeMap map[string]string, helperFunctio
 //     A GenDecl node (generic declaration node) represents an import, constant, type or variable declaration.
 func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 	for _, spec := range in.Specs {
-		switch global := spec.(type) {
-		case *ast.ValueSpec: // for things like `var e Example` declared outside of functions
+		if global, ok := spec.(*ast.ValueSpec); ok {
 			varName := global.Names[0].Name
 			if global.Type != nil {
 				if t, ok := global.Type.(*ast.Ident); ok {
