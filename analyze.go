@@ -18,10 +18,12 @@ func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionRetur
 			out.Add(functionName)
 		}
 	case *ast.SelectorExpr:
-		structVarName := f.X.(*ast.Ident).Name
-		calledMethodName := f.Sel.Name
-		if _, ok := nameToTypeMap[structVarName]; ok {
-			out.Add(fmt.Sprintf("%s.%s", nameToTypeMap[structVarName], calledMethodName))
+		if x, ok := f.X.(*ast.Ident); ok {
+			structVarName := x.Name
+			calledMethodName := f.Sel.Name
+			if _, ok := nameToTypeMap[structVarName]; ok {
+				out.Add(fmt.Sprintf("%s.%s", nameToTypeMap[structVarName], calledMethodName))
+			}
 		}
 	case *ast.FuncLit:
 		parseFuncLit(f, nameToTypeMap, helperFunctionReturnMap, out)
@@ -41,23 +43,24 @@ func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunc
 //      A UnaryExpr node represents a unary expression. Unary "*" expressions are represented via StarExpr nodes.
 // (handles declarations like `callExpr := &ast.UnaryExpr{}` or `callExpr := ast.UnaryExpr{}`)
 func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	cl := in.X.(*ast.CompositeLit)
-	for _, e := range cl.Elts {
-		switch et := e.(type) {
-		case *ast.CallExpr:
-			parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
-		case *ast.KeyValueExpr:
-			switch vt := et.Value.(type) {
+	if cl, ok := in.X.(*ast.CompositeLit); ok {
+		for _, e := range cl.Elts {
+			switch et := e.(type) {
 			case *ast.CallExpr:
-				parseCallExpr(vt, nameToTypeMap, helperFunctionReturnMap, out)
+				parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+			case *ast.KeyValueExpr:
+				switch vt := et.Value.(type) {
+				case *ast.CallExpr:
+					parseCallExpr(vt, nameToTypeMap, helperFunctionReturnMap, out)
+				}
 			}
 		}
-	}
-	switch u := cl.Type.(type) {
-	case *ast.Ident:
-		nameToTypeMap[varName] = u.Name
-	case *ast.SelectorExpr:
-		nameToTypeMap[varName] = u.Sel.Name
+		switch u := cl.Type.(type) {
+		case *ast.Ident:
+			nameToTypeMap[varName] = u.Name
+		case *ast.SelectorExpr:
+			nameToTypeMap[varName] = u.Sel.Name
+		}
 	}
 }
 
@@ -65,6 +68,9 @@ func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]
 // 		A DeclStmt node represents a declaration in a statement list.
 // DeclStmts come from function bodies, GenDecls come from package-wide const or var declarations
 func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
+	// FIXME: we make a whole mess of assumptions right here. I haven't thusfar seen any
+	// 		  evidence that these assumptions are incorrect or dangerous, but that doesn't
+	// 		  mean they don't carry the inherent risk that most assumptions do.
 	varName := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name
 	switch t := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(type) {
 	case *ast.Ident:
@@ -152,9 +158,11 @@ func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]
 				case *ast.Ident:
 					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Name)
 				case *ast.SelectorExpr:
-					pkgName := x.X.(*ast.Ident).Name
-					pkgStruct := x.Sel.Name
-					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
+					if pkg, ok := x.X.(*ast.Ident); ok {
+						pkgName := pkg.Name
+						pkgStruct := x.Sel.Name
+						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
+					}
 				}
 			case *ast.Ident:
 				helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
@@ -312,7 +320,9 @@ func parseFuncDecl(f *ast.FuncDecl) string {
 	if f.Recv != nil {
 		switch x := f.Recv.List[0].Type.(type) {
 		case *ast.StarExpr:
-			parentName = x.X.(*ast.Ident).Name
+			if parent, ok := x.X.(*ast.Ident); ok {
+				parentName = parent.Name
+			}
 		case *ast.Ident:
 			parentName = x.Obj.Name
 		}
@@ -344,8 +354,10 @@ func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 		case *ast.ValueSpec: // for things like `var e Example` declared outside of functions
 			varName := global.Names[0].Name
 			if global.Type != nil {
-				typeName := global.Type.(*ast.Ident).Name
-				nameToTypeMap[varName] = typeName
+				if t, ok := global.Type.(*ast.Ident); ok {
+					typeName := t.Name
+					nameToTypeMap[varName] = typeName
+				}
 			}
 		}
 	}
