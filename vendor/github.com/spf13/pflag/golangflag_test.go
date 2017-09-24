@@ -13,7 +13,7 @@ func TestGoflags(t *testing.T) {
 	goflag.String("stringFlag", "stringFlag", "stringFlag")
 	goflag.Bool("boolFlag", false, "boolFlag")
 
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 
 	f.AddGoFlagSet(goflag.CommandLine)
 	err := f.Parse([]string{"--stringFlag=bob", "--boolFlag"})

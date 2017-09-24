@@ -56,7 +56,7 @@ func (v *triStateValue) Type() string {
 }
 
 func setUpFlagSet(tristate *triStateValue) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	*tristate = triStateFalse
 	flag := f.VarPF(tristate, "tristate", "t", "tristate value (true, maybe or false)")
 	flag.NoOptDefVal = "true"

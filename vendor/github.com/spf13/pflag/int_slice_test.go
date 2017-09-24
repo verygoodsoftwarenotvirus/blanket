@@ -12,13 +12,13 @@ import (
 )
 
 func setUpISFlagSet(isp *[]int) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.IntSliceVar(isp, "is", []int{}, "Command separated list!")
 	return f
 }
 
 func setUpISFlagSetWithDefault(isp *[]int) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.IntSliceVar(isp, "is", []int{0, 1}, "Command separated list!")
 	return f
 }

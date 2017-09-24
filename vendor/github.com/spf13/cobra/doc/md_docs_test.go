@@ -91,7 +91,7 @@ func TestGenMdTree(t *testing.T) {
 	cmd := &cobra.Command{
 		Use: "do [OPTIONS] arg1 arg2",
 	}
-	tmpdir, err := ioutil.TempDir("", "temp-gen-md-tree")
+	tmpdir, err := ioutil.TempDir("", "test-gen-md-tree")
 	if err != nil {
 		t.Fatalf("Failed to create tmpdir: %s", err.Error())
 	}

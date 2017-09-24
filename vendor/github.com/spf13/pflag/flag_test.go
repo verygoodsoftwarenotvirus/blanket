@@ -92,7 +92,7 @@ func TestEverything(t *testing.T) {
 			t.Log(k, *v)
 		}
 	}
-	// Now temp they're visited in sort order.
+	// Now test they're visited in sort order.
 	var flagNames []string
 	Visit(func(f *Flag) { flagNames = append(flagNames, f.Name) })
 	if !sort.StringsAreSorted(flagNames) {
@@ -493,7 +493,7 @@ func TestParseAll(t *testing.T) {
 }
 
 func TestFlagSetParse(t *testing.T) {
-	testParse(NewFlagSet("temp", ContinueOnError), t)
+	testParse(NewFlagSet("test", ContinueOnError), t)
 }
 
 func TestChangedHelper(t *testing.T) {
@@ -676,7 +676,7 @@ func (f *flagVar) Type() string {
 
 func TestUserDefined(t *testing.T) {
 	var flags FlagSet
-	flags.Init("temp", ContinueOnError)
+	flags.Init("test", ContinueOnError)
 	var v flagVar
 	flags.VarP(&v, "v", "v", "usage")
 	if err := flags.Parse([]string{"--v=1", "-v2", "-v", "3"}); err != nil {
@@ -695,7 +695,7 @@ func TestSetOutput(t *testing.T) {
 	var flags FlagSet
 	var buf bytes.Buffer
 	flags.SetOutput(&buf)
-	flags.Init("temp", ContinueOnError)
+	flags.Init("test", ContinueOnError)
 	flags.Parse([]string{"--unknown"})
 	if out := buf.String(); !strings.Contains(out, "--unknown") {
 		t.Logf("expected output mentioning unknown; got %q", out)
@@ -727,7 +727,7 @@ func TestChangingArgs(t *testing.T) {
 // Test that -help invokes the usage message and returns ErrHelp.
 func TestHelp(t *testing.T) {
 	var helpCalled = false
-	fs := NewFlagSet("help temp", ContinueOnError)
+	fs := NewFlagSet("help test", ContinueOnError)
 	fs.Usage = func() { helpCalled = true }
 	var flag bool
 	fs.BoolVar(&flag, "flag", false, "regular flag")
@@ -741,7 +741,7 @@ func TestHelp(t *testing.T) {
 	}
 	if helpCalled {
 		t.Error("help called for regular flag")
-		helpCalled = false // reset for next temp
+		helpCalled = false // reset for next test
 	}
 	// Help flag should work as expected.
 	err = fs.Parse([]string{"--help"})
@@ -768,7 +768,7 @@ func TestHelp(t *testing.T) {
 }
 
 func TestNoInterspersed(t *testing.T) {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.SetInterspersed(false)
 	f.Bool("true", true, "always true")
 	f.Bool("false", false, "always false")
@@ -1004,7 +1004,7 @@ func (cv *customValue) Set(s string) error {
 func (cv *customValue) Type() string { return "custom" }
 
 func TestPrintDefaults(t *testing.T) {
-	fs := NewFlagSet("print defaults temp", ContinueOnError)
+	fs := NewFlagSet("print defaults test", ContinueOnError)
 	var buf bytes.Buffer
 	fs.SetOutput(&buf)
 	fs.Bool("A", false, "for bootstrapping, allow 'any' type")

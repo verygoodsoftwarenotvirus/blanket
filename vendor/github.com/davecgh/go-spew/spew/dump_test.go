@@ -16,8 +16,8 @@
 
 /*
 Test Summary:
-NOTE: For each temp, a nil pointer, a single pointer and double pointer to the
-base temp element are also tested to ensure proper indirection across all types.
+NOTE: For each test, a nil pointer, a single pointer and double pointer to the
+base test element are also tested to ensure proper indirection across all types.
 
 - Max int8, int16, int32, int64, int
 - Max uint8, uint16, uint32, uint64, uint
@@ -70,7 +70,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-// dumpTest is used to describe a temp to be performed against the Dump method.
+// dumpTest is used to describe a test to be performed against the Dump method.
 type dumpTest struct {
 	in    interface{}
 	wants []string
@@ -507,14 +507,14 @@ func addSliceDumpTests() {
 
 func addStringDumpTests() {
 	// Standard string.
-	v := "temp"
+	v := "test"
 	vLen := fmt.Sprintf("%d", len(v))
 	nv := (*string)(nil)
 	pv := &v
 	vAddr := fmt.Sprintf("%p", pv)
 	pvAddr := fmt.Sprintf("%p", &pv)
 	vt := "string"
-	vs := "(len=" + vLen + ") \"temp\""
+	vs := "(len=" + vLen + ") \"test\""
 	addDumpTest(v, "("+vt+") "+vs+"\n")
 	addDumpTest(pv, "(*"+vt+")("+vAddr+")("+vs+")\n")
 	addDumpTest(&pv, "(**"+vt+")("+pvAddr+"->"+vAddr+")("+vs+")\n")
@@ -696,20 +696,20 @@ func addStructDumpTests() {
 		s pstringer
 		S pstringer
 	}
-	v3 := s3{"temp", "test2"}
+	v3 := s3{"test", "test2"}
 	nv3 := (*s3)(nil)
 	pv3 := &v3
 	v3Addr := fmt.Sprintf("%p", pv3)
 	pv3Addr := fmt.Sprintf("%p", &pv3)
 	v3t := "spew_test.s3"
 	v3t2 := "spew_test.pstringer"
-	v3s := "{\n s: (" + v3t2 + ") (len=4) stringer temp,\n S: (" + v3t2 +
+	v3s := "{\n s: (" + v3t2 + ") (len=4) stringer test,\n S: (" + v3t2 +
 		") (len=5) stringer test2\n}"
 	v3sp := v3s
 	if spew.UnsafeDisabled {
-		v3s = "{\n s: (" + v3t2 + ") (len=4) \"temp\",\n S: (" +
+		v3s = "{\n s: (" + v3t2 + ") (len=4) \"test\",\n S: (" +
 			v3t2 + ") (len=5) \"test2\"\n}"
-		v3sp = "{\n s: (" + v3t2 + ") (len=4) \"temp\",\n S: (" +
+		v3sp = "{\n s: (" + v3t2 + ") (len=4) \"test\",\n S: (" +
 			v3t2 + ") (len=5) stringer test2\n}"
 	}
 	addDumpTest(v3, "("+v3t+") "+v3s+"\n")
@@ -934,7 +934,7 @@ func addPanicDumpTests() {
 	vAddr := fmt.Sprintf("%p", pv)
 	pvAddr := fmt.Sprintf("%p", &pv)
 	vt := "spew_test.panicer"
-	vs := "(PANIC=temp panic)127"
+	vs := "(PANIC=test panic)127"
 	addDumpTest(v, "("+vt+") "+vs+"\n")
 	addDumpTest(pv, "(*"+vt+")("+vAddr+")("+vs+")\n")
 	addDumpTest(&pv, "(**"+vt+")("+pvAddr+"->"+vAddr+")("+vs+")\n")

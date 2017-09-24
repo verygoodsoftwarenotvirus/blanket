@@ -22,7 +22,7 @@ var cmdEcho = &cobra.Command{
 	Aliases: []string{"say"},
 	Short:   "Echo anything to the screen",
 	Long:    `an utterly useless command for testing.`,
-	Example: "Just run cobra-temp echo",
+	Example: "Just run cobra-test echo",
 }
 
 var cmdEchoSub = &cobra.Command{
@@ -55,7 +55,7 @@ var cmdPrint = &cobra.Command{
 }
 
 var cmdRootNoRun = &cobra.Command{
-	Use:   "cobra-temp",
+	Use:   "cobra-test",
 	Short: "The root can run its own function",
 	Long:  "The root description for help",
 }
@@ -67,7 +67,7 @@ var cmdRootSameName = &cobra.Command{
 }
 
 var cmdRootWithRun = &cobra.Command{
-	Use:   "cobra-temp",
+	Use:   "cobra-test",
 	Short: "The root can run its own function",
 	Long:  "The root description for help",
 }

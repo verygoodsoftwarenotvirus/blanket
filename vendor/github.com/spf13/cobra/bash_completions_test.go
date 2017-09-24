@@ -97,7 +97,7 @@ func TestBashCompletions(t *testing.T) {
 	c.GenBashCompletion(out)
 	str := out.String()
 
-	check(t, str, "_cobra-temp")
+	check(t, str, "_cobra-test")
 	check(t, str, "_cobra-test_echo")
 	check(t, str, "_cobra-test_echo_times")
 	check(t, str, "_cobra-test_print")

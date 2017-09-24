@@ -11,13 +11,13 @@ import (
 )
 
 func setUpSSFlagSet(ssp *[]string) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.StringSliceVar(ssp, "ss", []string{}, "Command separated list!")
 	return f
 }
 
 func setUpSSFlagSetWithDefault(ssp *[]string) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.StringSliceVar(ssp, "ss", []string{"default", "values"}, "Command separated list!")
 	return f
 }

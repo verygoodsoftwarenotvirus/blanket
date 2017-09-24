@@ -49,7 +49,7 @@ var cmdEcho = &Command{
 	Aliases: []string{"say"},
 	Short:   "Echo anything to the screen",
 	Long:    `an utterly useless command for testing.`,
-	Example: "Just run cobra-temp echo",
+	Example: "Just run cobra-test echo",
 	PersistentPreRun: func(cmd *Command, args []string) {
 		echoPersPre = args
 	},
@@ -95,7 +95,7 @@ var cmdTimes = &Command{
 }
 
 var cmdRootNoRun = &Command{
-	Use:   "cobra-temp",
+	Use:   "cobra-test",
 	Short: "The root can run its own function",
 	Long:  "The root description for help",
 	PersistentPreRun: func(cmd *Command, args []string) {
@@ -120,7 +120,7 @@ var cmdRootTakesArgs = &Command{
 }
 
 var cmdRootWithRun = &Command{
-	Use:   "cobra-temp",
+	Use:   "cobra-test",
 	Short: "The root can run its own function",
 	Long:  "The root description for help",
 	Run: func(cmd *Command, args []string) {
@@ -503,7 +503,7 @@ func TestSubCmdTakesNoArgs(t *testing.T) {
 		t.Fatal("Expected an error")
 	}
 
-	expectedError := `unknown command "illegal" for "cobra-temp deprecated"`
+	expectedError := `unknown command "illegal" for "cobra-test deprecated"`
 	if !strings.Contains(result.Error.Error(), expectedError) {
 		t.Errorf("expected %v, got %v", expectedError, result.Error.Error())
 	}
@@ -660,7 +660,7 @@ func TestInvalidSubcommandFlags(t *testing.T) {
 	result := simpleTester(cmd, "times", "--inttwo=2", "--badflag=bar")
 	// given that we are not checking here result.Error we check for
 	// stock usage message
-	checkResultContains(t, result, "cobra-temp times [# times]")
+	checkResultContains(t, result, "cobra-test times [# times]")
 	if strings.Contains(result.Error.Error(), "unknown flag: --inttwo") {
 		t.Errorf("invalid --badflag flag shouldn't fail on 'unknown' --inttwo flag")
 	}
@@ -965,7 +965,7 @@ func TestRootNoCommandHelp(t *testing.T) {
 
 func TestRootUnknownCommand(t *testing.T) {
 	r := noRRSetupTest("bogus")
-	s := "Error: unknown command \"bogus\" for \"cobra-temp\"\nRun 'cobra-temp --help' for usage.\n"
+	s := "Error: unknown command \"bogus\" for \"cobra-test\"\nRun 'cobra-test --help' for usage.\n"
 
 	if r.Output != s {
 		t.Errorf("Unexpected response.\nExpecting to be:\n %q\nGot:\n %q\n", s, r.Output)
@@ -991,8 +991,8 @@ func TestRootUnknownCommandSilenced(t *testing.T) {
 }
 
 func TestRootSuggestions(t *testing.T) {
-	outputWithSuggestions := "Error: unknown command \"%s\" for \"cobra-temp\"\n\nDid you mean this?\n\t%s\n\nRun 'cobra-temp --help' for usage.\n"
-	outputWithoutSuggestions := "Error: unknown command \"%s\" for \"cobra-temp\"\nRun 'cobra-temp --help' for usage.\n"
+	outputWithSuggestions := "Error: unknown command \"%s\" for \"cobra-test\"\n\nDid you mean this?\n\t%s\n\nRun 'cobra-test --help' for usage.\n"
+	outputWithoutSuggestions := "Error: unknown command \"%s\" for \"cobra-test\"\nRun 'cobra-test --help' for usage.\n"
 
 	cmd := initializeWithRootCmd()
 	cmd.AddCommand(cmdTimes)

@@ -14,6 +14,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/fatih/color"
+  packages = ["."]
+  revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
+  version = "v1.5.0"
+
+[[projects]]
   name = "github.com/fatih/set"
   packages = ["."]
   revision = "57907de300222151a123d29255ed17f5ed43fad3"
@@ -26,10 +32,16 @@
   version = "v1.0"
 
 [[projects]]
-  name = "github.com/jessevdk/go-flags"
+  name = "github.com/mattn/go-colorable"
   packages = ["."]
-  revision = "96dc06278ce32a0e9d957d590bb987c81ee66407"
-  version = "v1.3.0"
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
+  version = "v0.0.2"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -55,9 +67,15 @@
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "429f518978ab01db8bb6f44b66785088e7fba58b"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "25e68cbd5b79b3b5be436eb70cbda46d4ece4f5c637b5127d4b420cb705407ac"
+  inputs-digest = "c21b42f598b9d9287a2bfb503f298bbe6176938a188f1b67a41ddd20098b0f23"
   solver-name = "gps-cdcl"
   solver-version = 1

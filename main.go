@@ -10,18 +10,22 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"unicode/utf8"
 
+	"github.com/fatih/color"
 	"github.com/fatih/set"
 	"github.com/spf13/cobra"
 )
 
 const (
-	differenceReportTmpl = `The following functions are declared, but don't appear to have direct unit tests:{{range $filename, $missing := .}}
-in {{$filename}}:{{range $missing}}
+	differenceReportTmpl = `Functions without direct unit tests:{{range $filename, $missing := .Details}}
+in {{colorizer $filename "white" true false}}:{{range $missing}}
 	{{pad .Name}} on line {{.DeclPos.Line}}{{end}}{{end}}
+
+Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
 `
 )
 
@@ -33,22 +37,33 @@ var (
 
 	// helper variables
 	fileset *token.FileSet
+
+	rootCmd = &cobra.Command{
+		Use:   "tarp",
+		Short: "tarp is a coverage helper tool",
+		Long:  `tarp is a tool which aims to help ensure you have direct unit tests for all your declared functions for a particular Go package.`,
+	}
+
+	analyzeCmd = &cobra.Command{
+		Use:   "analyze",
+		Short: "Analyze a given package",
+		Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
+		Run: func(cmd *cobra.Command, args []string) {
+			analyze(analyzePackage, failOnFinding)
+		},
+	}
+
+	colors = map[string]color.Attribute{
+		"black":   color.FgBlack,
+		"red":     color.FgRed,
+		"green":   color.FgGreen,
+		"yellow":  color.FgYellow,
+		"blue":    color.FgBlue,
+		"magenta": color.FgMagenta,
+		"cyan":    color.FgCyan,
+		"white":   color.FgWhite,
+	}
 )
-
-var rootCmd = &cobra.Command{
-	Use:   "tarp",
-	Short: "tarp is a coverage helper tool",
-	Long:  `tarp is a tool which aims to help ensure you have direct unit tests for all your declared functions for a particular Go package.`,
-}
-
-var analyzeCmd = &cobra.Command{
-	Use:   "analyze",
-	Short: "Analyze a given package",
-	Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
-	Run: func(cmd *cobra.Command, args []string) {
-		analyze(analyzePackage, failOnFinding)
-	},
-}
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
@@ -59,7 +74,7 @@ func init() {
 	fileset = token.NewFileSet()
 }
 
-func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) string {
+func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc, declaredFuncCount int, calledFuncCount int) string {
 	longestFunctionNameLength := 0
 	missingFuncs := &TarpDetails{}
 	for _, s := range diff {
@@ -73,6 +88,19 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 	for _, tf := range *missingFuncs {
 		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
 	}
+	score := float64(calledFuncCount) / float64(declaredFuncCount)
+
+	report := struct {
+		DeclaredCount int
+		CalledCount   int
+		Score         int
+		Details       map[string][]TarpFunc
+	}{
+		DeclaredCount: declaredFuncCount,
+		CalledCount:   calledFuncCount,
+		Score:         int(score * 100),
+		Details:       byFilename,
+	}
 
 	funcMap := template.FuncMap{
 		// The name "title" is what the function will be called in the template text.
@@ -84,6 +112,35 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 			}
 			return s
 		},
+		"colorizer": func(s string, c string, bold bool, underlined bool) string {
+			if _, ok := colors[c]; ok {
+				arguments := []color.Attribute{colors[c]}
+				if bold {
+					arguments = append(arguments, color.Bold)
+				}
+				if underlined {
+					arguments = append(arguments, color.Underline)
+				}
+				return color.New(arguments...).SprintfFunc()(s)
+			}
+			return s
+		},
+		"grader": func(score int) string {
+			grade := map[int]string{
+				6:  "magenta",
+				7:  "yellow",
+				8:  "cyan",
+				9:  "blue",
+				10: "green",
+			}[score/10]
+
+			outputString := strconv.Itoa(score) + "%%"
+
+			if _, ok := colors[grade]; ok {
+				return color.New(colors[grade]).SprintfFunc()(outputString)
+			}
+			return color.New(colors["red"]).SprintfFunc()(outputString)
+		},
 	}
 
 	t, err := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
@@ -92,7 +149,7 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc) str
 	}
 
 	var tpl bytes.Buffer
-	if err = t.Execute(&tpl, byFilename); err != nil {
+	if err = t.Execute(&tpl, report); err != nil {
 		panic(err)
 	}
 	return tpl.String()
@@ -147,9 +204,13 @@ func analyze(analyzePackage string, failOnFinding bool) {
 	for _, f := range declaredFuncInfo {
 		declaredFuncs.Add(f.Name)
 	}
+	toPrune := set.StringSlice(set.Difference(calledFuncs, declaredFuncs))
+	for _, x := range toPrune {
+		calledFuncs.Remove(x)
+	}
 
 	diff := set.StringSlice(set.Difference(declaredFuncs, calledFuncs))
-	diffReport := generateDiffReport(diff, declaredFuncInfo)
+	diffReport := generateDiffReport(diff, declaredFuncInfo, declaredFuncs.Size(), calledFuncs.Size())
 
 	if len(diff) > 0 {
 		fmt.Println(diffReport)

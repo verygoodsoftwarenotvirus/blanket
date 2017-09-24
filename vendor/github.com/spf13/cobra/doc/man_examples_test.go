@@ -10,8 +10,8 @@ import (
 
 func ExampleGenManTree() {
 	cmd := &cobra.Command{
-		Use:   "temp",
-		Short: "my temp program",
+		Use:   "test",
+		Short: "my test program",
 	}
 	header := &doc.GenManHeader{
 		Title:   "MINE",
@@ -22,8 +22,8 @@ func ExampleGenManTree() {
 
 func ExampleGenMan() {
 	cmd := &cobra.Command{
-		Use:   "temp",
-		Short: "my temp program",
+		Use:   "test",
+		Short: "my test program",
 	}
 	header := &doc.GenManHeader{
 		Title:   "MINE",

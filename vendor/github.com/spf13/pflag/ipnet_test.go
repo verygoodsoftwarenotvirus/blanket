@@ -8,7 +8,7 @@ import (
 )
 
 func setUpIPNet(ip *net.IPNet) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	_, def, _ := net.ParseCIDR("0.0.0.0/0")
 	f.IPNetVar(ip, "address", *def, "IP Address")
 	return f

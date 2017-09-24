@@ -108,7 +108,7 @@ func (a *Assertions) Fail(failureMessage string, msgAndArgs ...interface{}) {
 }
 
 
-// FailNow fails temp
+// FailNow fails test
 func (a *Assertions) FailNow(failureMessage string, msgAndArgs ...interface{}) {
 	FailNow(a.t, failureMessage, msgAndArgs...)
 }

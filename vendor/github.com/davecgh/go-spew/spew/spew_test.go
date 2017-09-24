@@ -27,7 +27,7 @@ import (
 )
 
 // spewFunc is used to identify which public function of the spew package or
-// ConfigState a temp applies to.
+// ConfigState a test applies to.
 type spewFunc int
 
 const (
@@ -86,7 +86,7 @@ func (f spewFunc) String() string {
 	return fmt.Sprintf("Unknown spewFunc (%d)", int(f))
 }
 
-// spewTest is used to describe a temp to be performed against the public
+// spewTest is used to describe a test to be performed against the public
 // functions of the spew package or ConfigState.
 type spewTest struct {
 	cs     *spew.ConfigState
@@ -107,7 +107,7 @@ var spewTests []spewTest
 // redirStdout is a helper function to return the standard output from f as a
 // byte slice.
 func redirStdout(f func()) ([]byte, error) {
-	tempFile, err := ioutil.TempFile("", "ss-temp")
+	tempFile, err := ioutil.TempFile("", "ss-test")
 	if err != nil {
 		return nil, err
 	}
@@ -135,15 +135,15 @@ func initSpewTests() {
 
 	// Variables for tests on types which implement Stringer interface with and
 	// without a pointer receiver.
-	ts := stringer("temp")
-	tps := pstringer("temp")
+	ts := stringer("test")
+	tps := pstringer("test")
 
 	type ptrTester struct {
 		s *struct{}
 	}
 	tptr := &ptrTester{s: &struct{}{}}
 
-	// depthTester is used to temp max depth handling for structs, array, slices
+	// depthTester is used to test max depth handling for structs, array, slices
 	// and maps.
 	type depthTester struct {
 		ic    indirCir1
@@ -179,23 +179,23 @@ func initSpewTests() {
 		{scsDefault, fSprint, "", complex(-1, -2), "(-1-2i)"},
 		{scsDefault, fSprintf, "%v", complex(float32(-3), -4), "(-3-4i)"},
 		{scsDefault, fSprintln, "", complex(float64(-5), -6), "(-5-6i)\n"},
-		{scsNoMethods, fCSFprint, "", ts, "temp"},
-		{scsNoMethods, fCSFprint, "", &ts, "<*>temp"},
-		{scsNoMethods, fCSFprint, "", tps, "temp"},
-		{scsNoMethods, fCSFprint, "", &tps, "<*>temp"},
-		{scsNoPmethods, fCSFprint, "", ts, "stringer temp"},
-		{scsNoPmethods, fCSFprint, "", &ts, "<*>stringer temp"},
-		{scsNoPmethods, fCSFprint, "", tps, "temp"},
-		{scsNoPmethods, fCSFprint, "", &tps, "<*>stringer temp"},
+		{scsNoMethods, fCSFprint, "", ts, "test"},
+		{scsNoMethods, fCSFprint, "", &ts, "<*>test"},
+		{scsNoMethods, fCSFprint, "", tps, "test"},
+		{scsNoMethods, fCSFprint, "", &tps, "<*>test"},
+		{scsNoPmethods, fCSFprint, "", ts, "stringer test"},
+		{scsNoPmethods, fCSFprint, "", &ts, "<*>stringer test"},
+		{scsNoPmethods, fCSFprint, "", tps, "test"},
+		{scsNoPmethods, fCSFprint, "", &tps, "<*>stringer test"},
 		{scsMaxDepth, fCSFprint, "", dt, "{{<max>} [<max>] [<max>] map[<max>]}"},
 		{scsMaxDepth, fCSFdump, "", dt, "(spew_test.depthTester) {\n" +
 			" ic: (spew_test.indirCir1) {\n  <max depth reached>\n },\n" +
 			" arr: ([1]string) (len=1 cap=1) {\n  <max depth reached>\n },\n" +
 			" slice: ([]string) (len=1 cap=1) {\n  <max depth reached>\n },\n" +
 			" m: (map[string]int) (len=1) {\n  <max depth reached>\n }\n}\n"},
-		{scsContinue, fCSFprint, "", ts, "(stringer temp) temp"},
+		{scsContinue, fCSFprint, "", ts, "(stringer test) test"},
 		{scsContinue, fCSFdump, "", ts, "(spew_test.stringer) " +
-			"(len=4) (stringer temp) \"temp\"\n"},
+			"(len=4) (stringer test) \"test\"\n"},
 		{scsContinue, fCSFprint, "", te, "(error: 10) 10"},
 		{scsContinue, fCSFdump, "", te, "(spew_test.customError) " +
 			"(error: 10) 10\n"},

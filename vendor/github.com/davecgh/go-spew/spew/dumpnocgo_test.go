@@ -14,7 +14,7 @@
 
 // NOTE: Due to the following build constraints, this file will only be compiled
 // when either cgo is not supported or "-tags testcgo" is not added to the go
-// temp command line.  This file intentionally does not setup any cgo tests in
+// test command line.  This file intentionally does not setup any cgo tests in
 // this scenario.
 // +build !cgo !testcgo
 

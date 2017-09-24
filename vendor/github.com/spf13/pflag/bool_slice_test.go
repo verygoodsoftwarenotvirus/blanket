@@ -8,13 +8,13 @@ import (
 )
 
 func setUpBSFlagSet(bsp *[]bool) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.BoolSliceVar(bsp, "bs", []bool{}, "Command separated list!")
 	return f
 }
 
 func setUpBSFlagSetWithDefault(bsp *[]bool) *FlagSet {
-	f := NewFlagSet("temp", ContinueOnError)
+	f := NewFlagSet("test", ContinueOnError)
 	f.BoolSliceVar(bsp, "bs", []bool{false, true}, "Command separated list!")
 	return f
 }
@@ -208,7 +208,7 @@ func TestBSBadQuoting(t *testing.T) {
 
 		for j, b := range bs {
 			if b != test.Want[j] {
-				t.Fatalf("bad value parsed for temp %d on bool %d:\nwant:\t%t\ngot:\t%t", i, j, test.Want[j], b)
+				t.Fatalf("bad value parsed for test %d on bool %d:\nwant:\t%t\ngot:\t%t", i, j, test.Want[j], b)
 			}
 		}
 	}

@@ -916,7 +916,7 @@ func (f *FlagSet) parseLongArg(s string, args []string, fn parseFunc) (a []strin
 }
 
 func (f *FlagSet) parseSingleShortArg(shorthands string, args []string, fn parseFunc) (outShorts string, outArgs []string, err error) {
-	if strings.HasPrefix(shorthands, "temp.") {
+	if strings.HasPrefix(shorthands, "test.") {
 		return
 	}
 

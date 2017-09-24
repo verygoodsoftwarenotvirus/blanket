@@ -24,7 +24,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-// custom type to temp Stinger interface on non-pointer receiver.
+// custom type to test Stinger interface on non-pointer receiver.
 type stringer string
 
 // String implements the Stringer interface for testing invocation of custom
@@ -33,7 +33,7 @@ func (s stringer) String() string {
 	return "stringer " + string(s)
 }
 
-// custom type to temp Stinger interface on pointer receiver.
+// custom type to test Stinger interface on pointer receiver.
 type pstringer string
 
 // String implements the Stringer interface for testing invocation of custom
@@ -63,12 +63,12 @@ type indirCir3 struct {
 	ps1 *indirCir1
 }
 
-// embed is used to temp embedded structures.
+// embed is used to test embedded structures.
 type embed struct {
 	a string
 }
 
-// embedwrap is used to temp embedded structures.
+// embedwrap is used to test embedded structures.
 type embedwrap struct {
 	*embed
 	e *embed
@@ -79,18 +79,18 @@ type embedwrap struct {
 type panicer int
 
 func (p panicer) String() string {
-	panic("temp panic")
+	panic("test panic")
 }
 
-// customError is used to temp custom error interface invocation.
+// customError is used to test custom error interface invocation.
 type customError int
 
 func (e customError) Error() string {
 	return fmt.Sprintf("error: %d", int(e))
 }
 
-// stringizeWants converts a slice of wanted temp output into a format suitable
-// for a temp error message.
+// stringizeWants converts a slice of wanted test output into a format suitable
+// for a test error message.
 func stringizeWants(wants []string) string {
 	s := ""
 	for i, want := range wants {
@@ -103,8 +103,8 @@ func stringizeWants(wants []string) string {
 	return s
 }
 
-// testFailed returns whether or not a temp failed by checking if the result
-// of the temp is in the slice of wanted strings.
+// testFailed returns whether or not a test failed by checking if the result
+// of the test is in the slice of wanted strings.
 func testFailed(result string, wants []string) bool {
 	for _, want := range wants {
 		if result == want {

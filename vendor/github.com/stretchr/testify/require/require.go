@@ -126,7 +126,7 @@ func Fail(t TestingT, failureMessage string, msgAndArgs ...interface{}) {
 }
 
 
-// FailNow fails temp
+// FailNow fails test
 func FailNow(t TestingT, failureMessage string, msgAndArgs ...interface{}) {
   if !assert.FailNow(t, failureMessage, msgAndArgs...) {
     t.FailNow()

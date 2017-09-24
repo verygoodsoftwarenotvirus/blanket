@@ -599,6 +599,10 @@ func TestParseStmt(t *testing.T) {
 				}()
 				thing <- x.MethodThree()
 
+				// Args
+				assert.True(t, x.MethodFour())
+				assert.True(t, z.MethodFive())
+
 				// SwitchStmt
 				switch tmp {
 				case tmp:
@@ -632,7 +636,7 @@ func TestParseStmt(t *testing.T) {
 
 		// FIXME: make these literals
 		helperFunctionMap := map[string][]string{}
-		nameToTypeMap := map[string]string{}
+		nameToTypeMap := map[string]string{"z": "Example"}
 		actual := set.New("make")
 		expected := set.New(
 			"A",
@@ -656,6 +660,8 @@ func TestParseStmt(t *testing.T) {
 			"Example.MethodOne",
 			"Example.MethodTwo",
 			"Example.MethodThree",
+			"Example.MethodFour",
+			"Example.MethodFive",
 		)
 
 		p := parseChunkOfCode(t, codeSample)

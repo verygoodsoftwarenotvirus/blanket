@@ -212,9 +212,9 @@ func TestFormatUnequalValues(t *testing.T) {
 		Val string
 	}
 
-	expected, actual = formatUnequalValues(&testStructType{Val: "temp"}, &testStructType{Val: "temp"})
-	Equal(t, `&assert.testStructType{Val:"temp"}`, expected, "value should not include type annotation")
-	Equal(t, `&assert.testStructType{Val:"temp"}`, actual, "value should not include type annotation")
+	expected, actual = formatUnequalValues(&testStructType{Val: "test"}, &testStructType{Val: "test"})
+	Equal(t, `&assert.testStructType{Val:"test"}`, expected, "value should not include type annotation")
+	Equal(t, `&assert.testStructType{Val:"test"}`, actual, "value should not include type annotation")
 }
 
 func TestNotNil(t *testing.T) {
@@ -888,7 +888,7 @@ func TestInEpsilon(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		True(t, InEpsilon(t, tc.a, tc.b, tc.epsilon, "Expected %V and %V to have a relative difference of %v", tc.a, tc.b, tc.epsilon), "temp: %q", tc)
+		True(t, InEpsilon(t, tc.a, tc.b, tc.epsilon, "Expected %V and %V to have a relative difference of %v", tc.a, tc.b, tc.epsilon), "test: %q", tc)
 	}
 
 	cases = []struct {

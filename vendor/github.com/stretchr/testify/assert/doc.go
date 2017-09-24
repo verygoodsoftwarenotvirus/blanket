@@ -2,7 +2,7 @@
 //
 // Example Usage
 //
-// The following is a complete example using assert in a standard temp function:
+// The following is a complete example using assert in a standard test function:
 //    import (
 //      "testing"
 //      "github.com/stretchr/testify/assert"
@@ -35,7 +35,7 @@
 //
 // Assertions
 //
-// Assertions allow you to easily write temp code, and are global funcs in the `assert` package.
+// Assertions allow you to easily write test code, and are global funcs in the `assert` package.
 // All assertion functions take, as the first argument, the `*testing.T` object provided by the
 // testing framework. This allows the assertion funcs to write the failings and other details to
 // the correct place.

@@ -4,7 +4,7 @@
 //
 // The assert package provides a comprehensive set of assertion functions that tie in to the Go testing system.
 //
-// The http package contains tools to make it easier to temp http activity using the Go testing system.
+// The http package contains tools to make it easier to test http activity using the Go testing system.
 //
 // The mock package provides a system by which it is possible to mock your objects and verify calls are happening as expected.
 //

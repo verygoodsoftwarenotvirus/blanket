@@ -29,6 +29,11 @@ func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionRetur
 }
 
 func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+	for _, a := range in.Args {
+		if r, ok := a.(*ast.CallExpr); ok {
+			parseCallExpr(r, nameToTypeMap, helperFunctionReturnMap, out)
+		}
+	}
 	parseExpr(in.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 }
 
@@ -72,9 +77,8 @@ func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
 // parseExprStmt parses expression statements. From the go/ast docs:
 // 		An ExprStmt node represents a (stand-alone) expression in a statement list.
 func parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	switch c := in.X.(type) {
-	case *ast.CallExpr:
-		parseExpr(c.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+	if c, ok := in.X.(*ast.CallExpr); ok {
+		parseCallExpr(c, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
