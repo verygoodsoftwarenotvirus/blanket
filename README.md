@@ -1,4 +1,4 @@
-# tarp [![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp) [![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master)
+# tarp [![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp) [![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/verygoodsoftwarenotvirus/tarp)](https://goreportcard.com/report/github.com/verygoodsoftwarenotvirus/tarp)
 
 `tarp` is a tool that helps you catch functions which don't have direct unit tests in your Go packages.
 
