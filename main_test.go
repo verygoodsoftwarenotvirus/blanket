@@ -225,4 +225,17 @@ func TestFuncMain(t *testing.T) {
 		monkey.Unpatch(os.Exit)
 	}
 	t.Run("fails with --fail-on-found", failsWhenInstructed)
+
+	padTest := func(t *testing.T) {
+		failOnFound = false
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "pad_test", false)),
+		}
+
+		main()
+		os.Args = originalArgs
+	}
+	t.Run("pad test", padTest)
 }

@@ -22,7 +22,7 @@ import (
 
 const (
 	differenceReportTmpl = `Functions without direct unit tests:{{range $filename, $missing := .Details}}
-in {{colorizer $filename "white" true false}}:{{range $missing}}
+in {{colorizer $filename "white" true}}:{{range $missing}}
 	{{pad .Name}} on line {{.DeclPos.Line}}{{end}}{{end}}
 
 Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
@@ -31,8 +31,7 @@ Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
 
 var (
 	// flags
-	debug          bool
-	failOnFinding  bool
+	failOnFound    bool
 	analyzePackage string
 
 	// helper variables
@@ -49,7 +48,7 @@ var (
 		Short: "Analyze a given package",
 		Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
 		Run: func(cmd *cobra.Command, args []string) {
-			analyze(analyzePackage, failOnFinding)
+			analyze(analyzePackage, failOnFound)
 		},
 	}
 
@@ -67,8 +66,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "log various details about the parsing process")
-	analyzeCmd.Flags().BoolVarP(&failOnFinding, "fail-on-found", "f", false, "Call os.Exit(1) when functions without direct tests are found")
+	analyzeCmd.Flags().BoolVarP(&failOnFound, "fail-on-found", "f", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", ".", "Package to run analyze on. Defaults to the current directory.")
 
 	fileset = token.NewFileSet()
@@ -112,18 +110,12 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc, dec
 			}
 			return s
 		},
-		"colorizer": func(s string, c string, bold bool, underlined bool) string {
-			if _, ok := colors[c]; ok {
-				arguments := []color.Attribute{colors[c]}
-				if bold {
-					arguments = append(arguments, color.Bold)
-				}
-				if underlined {
-					arguments = append(arguments, color.Underline)
-				}
-				return color.New(arguments...).SprintfFunc()(s)
+		"colorizer": func(s string, c string, bold bool) string {
+			arguments := []color.Attribute{colors[c]}
+			if bold {
+				arguments = append(arguments, color.Bold)
 			}
-			return s
+			return color.New(arguments...).SprintfFunc()(s)
 		},
 		"grader": func(score int) string {
 			grade := map[int]string{
@@ -134,24 +126,20 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc, dec
 				10: "green",
 			}[score/10]
 
-			outputString := strconv.Itoa(score) + "%%"
-
-			if _, ok := colors[grade]; ok {
-				return color.New(colors[grade]).SprintfFunc()(outputString)
-			}
-			return color.New(colors["red"]).SprintfFunc()(outputString)
+			return color.New(colors[grade]).SprintfFunc()(strconv.Itoa(score) + "%%")
 		},
 	}
 
-	t, err := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
-	if err != nil {
-		panic(err)
-	}
+	t, _ := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	var tpl bytes.Buffer
-	if err = t.Execute(&tpl, report); err != nil {
-		panic(err)
-	}
+	_ = t.Execute(&tpl, report)
+	// if err != nil {
+	// 	panic(err)
+	// }
 	return tpl.String()
 }
 
@@ -188,10 +176,6 @@ func analyze(analyzePackage string, failOnFinding bool) {
 
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
-			if debug {
-				log.Printf("parsing %s", name)
-			}
-
 			if strings.HasSuffix(name, "_test.go") {
 				getCalledNames(f, nameToTypeMap, helperFunctionReturnMap, calledFuncs)
 			} else {
