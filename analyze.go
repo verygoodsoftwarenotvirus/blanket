@@ -71,12 +71,14 @@ func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
 	// FIXME: we make a whole mess of assumptions right here. I haven't thusfar seen any
 	// 		  evidence that these assumptions are incorrect or dangerous, but that doesn't
 	// 		  mean they don't carry the inherent risk that most assumptions do.
-	varName := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Names[0].Name
-	switch t := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec).Type.(type) {
-	case *ast.Ident:
-		nameToTypeMap[varName] = t.Name
-	case *ast.SelectorExpr:
-		nameToTypeMap[varName] = t.Sel.Name
+	if s, ok := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec); ok {
+		varName := s.Names[0].Name
+		switch t := s.Type.(type) {
+		case *ast.Ident:
+			nameToTypeMap[varName] = t.Name
+		case *ast.SelectorExpr:
+			nameToTypeMap[varName] = t.Sel.Name
+		}
 	}
 }
 
@@ -178,8 +180,10 @@ func parseTestFuncDecl(in *ast.FuncDecl, nameToTypeMap map[string]string, helper
 	if !strings.HasPrefix(functionName, "Test") {
 		parseHelperFunction(in, helperFunctionReturnMap, out)
 	}
-	for _, le := range in.Body.List {
-		parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
+	if in.Body != nil {
+		for _, le := range in.Body.List {
+			parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
+		}
 	}
 }
 
@@ -297,17 +301,19 @@ func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails 
 		switch f := d.(type) {
 		case *ast.FuncDecl:
 			declPos := fileset.Position(f.Type.Func)
-			lbracePos := fileset.Position(f.Body.Lbrace)
-			rbracePos := fileset.Position(f.Body.Rbrace)
 			functionName := parseFuncDecl(f)
 
-			declaredFuncDetails[functionName] = TarpFunc{
-				Name:      functionName,
-				Filename:  declPos.Filename,
-				DeclPos:   declPos,
-				RBracePos: rbracePos,
-				LBracePos: lbracePos,
+			tf := TarpFunc{
+				Name:     functionName,
+				Filename: declPos.Filename,
+				DeclPos:  declPos,
 			}
+
+			if f.Body != nil {
+				tf.RBracePos = fileset.Position(f.Body.Lbrace)
+				tf.LBracePos = fileset.Position(f.Body.Rbrace)
+			}
+			declaredFuncDetails[functionName] = tf
 		}
 	}
 }

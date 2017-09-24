@@ -37,6 +37,7 @@ var (
 	// helper variables
 	fileset *token.FileSet
 
+	// commands
 	rootCmd = &cobra.Command{
 		Use:   "tarp",
 		Short: "tarp is a coverage helper tool",
@@ -118,28 +119,28 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc, dec
 			return color.New(arguments...).SprintfFunc()(s)
 		},
 		"grader": func(score int) string {
-			grade := map[int]string{
+			gradeMap := map[int]string{
 				6:  "magenta",
 				7:  "yellow",
 				8:  "cyan",
 				9:  "blue",
 				10: "green",
-			}[score/10]
+			}
 
+			grade := "red"
+			if realGrade, ok := gradeMap[score/10]; ok {
+				grade = realGrade
+			}
 			return color.New(colors[grade]).SprintfFunc()(strconv.Itoa(score) + "%%")
 		},
 	}
 
+	// ignoring the error here because we can't recreate it in tests because our values are already fine.
 	t, _ := template.New("t").Funcs(funcMap).Parse(differenceReportTmpl)
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	var tpl bytes.Buffer
-	_ = t.Execute(&tpl, report)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	// see above re: the error this function returns
+	t.Execute(&tpl, report)
 	return tpl.String()
 }
 
