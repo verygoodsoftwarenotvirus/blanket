@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/parser"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/fatih/set"
@@ -104,6 +107,46 @@ func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[s
 	}
 }
 
+// parseGenDecl handles GenDecl nodes. From the go/ast docs:
+//     A GenDecl node (generic declaration node) represents an import, constant, type or variable declaration.
+func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
+	for _, spec := range in.Specs {
+		if global, ok := spec.(*ast.ValueSpec); ok {
+			varName := global.Names[0].Name
+			if global.Type != nil {
+				if t, ok := global.Type.(*ast.Ident); ok {
+					typeName := t.Name
+					nameToTypeMap[varName] = typeName
+				}
+			}
+		}
+	}
+}
+
+// parseFuncDecl parses function declarations. From the go/ast docs:
+//		A FuncDecl node represents a function declaration.
+// the main purpose of this is to parse functions that are declared in non-test go files.
+func parseFuncDecl(f *ast.FuncDecl) string {
+	functionName := f.Name.Name // "Avoid Stutter" lol
+	var parentName string
+	if f.Recv != nil {
+		switch x := f.Recv.List[0].Type.(type) {
+		case *ast.StarExpr:
+			if parent, ok := x.X.(*ast.Ident); ok {
+				parentName = parent.Name
+			}
+		case *ast.Ident:
+			parentName = x.Obj.Name
+		}
+	}
+
+	if parentName != "" {
+		return fmt.Sprintf("%s.%s", parentName, functionName)
+	}
+	return functionName
+
+}
+
 // parseAssignStmt handles AssignStmt nodes. From the go/ast docs:
 //    An AssignStmt node represents an assignment or a short variable declaration
 func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
@@ -152,6 +195,12 @@ func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]
 	if in.Type.Results != nil {
 		for _, r := range in.Type.Results.List {
 			switch rt := r.Type.(type) {
+			case *ast.SelectorExpr:
+				if pkg, ok := rt.X.(*ast.Ident); ok {
+					pkgName := pkg.Name
+					pkgStruct := rt.Sel.Name
+					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
+				}
 			case *ast.StarExpr:
 				switch x := rt.X.(type) {
 				case *ast.Ident:
@@ -166,20 +215,6 @@ func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]
 			case *ast.Ident:
 				helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
 			}
-		}
-	}
-}
-
-// parseTestFuncDecl parses function declarations that don't fit the testing function shape. The purpose of this is to catch
-// functions that authors may build to generate certain values for tests.
-func parseTestFuncDecl(in *ast.FuncDecl, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	functionName := in.Name.Name
-	if !strings.HasPrefix(functionName, "Test") {
-		parseHelperFunction(in, helperFunctionReturnMap, out)
-	}
-	if in.Body != nil {
-		for _, le := range in.Body.List {
-			parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
 }
@@ -311,52 +346,99 @@ func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails 
 	}
 }
 
-// parseFuncDecl parses function declarations. From the go/ast docs:
-//		A FuncDecl node represents a function declaration.
-func parseFuncDecl(f *ast.FuncDecl) string {
-	functionName := f.Name.Name // "Avoid Stutter" lol
-	var parentName string
-	if f.Recv != nil {
-		switch x := f.Recv.List[0].Type.(type) {
-		case *ast.StarExpr:
-			if parent, ok := x.X.(*ast.Ident); ok {
-				parentName = parent.Name
-			}
-		case *ast.Ident:
-			parentName = x.Obj.Name
-		}
-	}
-
-	if parentName != "" {
-		return fmt.Sprintf("%s.%s", parentName, functionName)
-	}
-	return functionName
-
-}
-
 func getCalledNames(in *ast.File, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, d := range in.Decls {
 		switch n := d.(type) {
 		case *ast.GenDecl:
 			parseGenDecl(n, nameToTypeMap)
 		case *ast.FuncDecl:
-			parseTestFuncDecl(n, nameToTypeMap, helperFunctionReturnMap, out)
-		}
-	}
-}
-
-// parseGenDecl handles GenDecl nodes. From the go/ast docs:
-//     A GenDecl node (generic declaration node) represents an import, constant, type or variable declaration.
-func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
-	for _, spec := range in.Specs {
-		if global, ok := spec.(*ast.ValueSpec); ok {
-			varName := global.Names[0].Name
-			if global.Type != nil {
-				if t, ok := global.Type.(*ast.Ident); ok {
-					typeName := t.Name
-					nameToTypeMap[varName] = typeName
+			if n.Body != nil {
+				for _, le := range n.Body.List {
+					parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 				}
 			}
 		}
 	}
+}
+
+func findHelperFuncs(in *ast.File, helperFunctionReturnMap map[string][]string, out *set.Set) {
+	for _, d := range in.Decls {
+		if n, ok := d.(*ast.FuncDecl); ok {
+			functionName := in.Name.Name
+			if !strings.HasPrefix(functionName, "Test") {
+				parseHelperFunction(n, helperFunctionReturnMap, out)
+			}
+		}
+	}
+}
+
+func analyze(analyzePackage string) TarpReport {
+	gopath := os.Getenv("GOPATH")
+
+	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
+	if analyzePackage == "." {
+		var err error
+		pkgDir, err = os.Getwd()
+		if err != nil {
+			log.Fatalf("error encountered getting current working directory: %v", err)
+		}
+	}
+
+	if debug {
+		log.Printf("package directory: %s", pkgDir)
+	}
+
+	_, err := os.Stat(pkgDir)
+	if os.IsNotExist(err) {
+		log.Fatalf("packageDir doesn't exist: %s", pkgDir)
+	}
+
+	astPkg, err := parser.ParseDir(fileset, pkgDir, nil, parser.AllErrors)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(astPkg) == 0 || astPkg == nil {
+		log.Fatal("no go files found!")
+	}
+
+	declaredFuncInfo := map[string]TarpFunc{}
+	calledFuncs := set.New("init")
+	helperFunctionReturnMap := map[string][]string{}
+	nameToTypeMap := map[string]string{}
+
+	// find all helper funcs first so we have an idea of what they are.
+	for _, pkg := range astPkg {
+		for name, f := range pkg.Files {
+			if strings.HasSuffix(name, "_test.go") {
+				findHelperFuncs(f, helperFunctionReturnMap, calledFuncs)
+			}
+		}
+	}
+
+	for _, pkg := range astPkg {
+		for name, f := range pkg.Files {
+			if strings.HasSuffix(name, "_test.go") {
+				getCalledNames(f, nameToTypeMap, helperFunctionReturnMap, calledFuncs)
+			} else {
+				getDeclaredNames(f, fileset, declaredFuncInfo)
+			}
+		}
+	}
+
+	declaredFuncs := set.New()
+	for _, f := range declaredFuncInfo {
+		declaredFuncs.Add(f.Name)
+	}
+
+	for _, x := range set.StringSlice(set.Difference(calledFuncs, declaredFuncs)) {
+		calledFuncs.Remove(x)
+	}
+
+	tr := TarpReport{
+		DeclaredDetails: declaredFuncInfo,
+		Declared:        declaredFuncs,
+		Called:          calledFuncs,
+	}
+	return tr
 }

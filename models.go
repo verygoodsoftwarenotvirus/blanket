@@ -2,7 +2,23 @@ package main
 
 import (
 	"go/token"
+
+	"github.com/fatih/set"
 )
+
+type TarpOutput struct {
+	DeclaredCount int
+	CalledCount   int
+	Score         int
+	Details       map[string][]TarpFunc
+	LongestFunctionNameLength int
+}
+
+type TarpReport struct {
+	DeclaredDetails map[string]TarpFunc
+	Called          *set.Set
+	Declared        *set.Set
+}
 
 type TarpDetails []TarpFunc
 type TarpFunc struct {

@@ -1,21 +1,111 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"log"
 	"testing"
 
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
 )
 
+////////////////////////////////////////////////////////
+//                                                    //
+//               Test Helper Functions                //
+//                                                    //
+////////////////////////////////////////////////////////
+
+func arbitraryDependencyUserDeleteMe(t *testing.T) *set.Set {
+	assert.True(t, true)
+	return set.New()
+}
+
 func parseChunkOfCode(t *testing.T, chunkOfCode string) *ast.File {
 	p, err := parser.ParseFile(token.NewFileSet(), "example.go", chunkOfCode, parser.AllErrors)
 	if err != nil {
+		log.Println(err)
 		t.FailNow()
 	}
 	return p
+}
+
+////////////////////////////////////////////////////////
+//                                                    //
+//                   Actual Tests                     //
+//                                                    //
+////////////////////////////////////////////////////////
+
+func TestParseExpr(t *testing.T) {
+	t.Parallel()
+
+	identTest := func(t *testing.T) {
+		codeSample := `
+			package main
+
+			func main() {
+				functionCall()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr).Fun
+
+		actual := set.New()
+		expected := set.New("functionCall")
+
+		parseExpr(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("ident", identTest)
+
+	selectorTest := func(t *testing.T) {
+		codeSample := `
+			package main
+
+			func main() {
+				class.methodCall()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr).Fun
+		nameToTypeMap := map[string]string{"class": "Example"}
+
+		actual := set.New()
+		expected := set.New("Example.methodCall")
+
+		parseExpr(input, nameToTypeMap, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("selector", selectorTest)
+
+	funcLitTest := func(t *testing.T) {
+		codeSample := `
+			package main
+
+			func main() {
+				func() {
+					functionCall()
+				}()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr).Fun
+
+		actual := set.New()
+		expected := set.New("functionCall")
+
+		parseExpr(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("function literal", funcLitTest)
 }
 
 func TestParseCallExpr(t *testing.T) {
@@ -178,6 +268,54 @@ func TestParseExprStmt(t *testing.T) {
 	}
 
 	t.Run("CallExpr.Fun.(*ast.Selector)", selector)
+}
+
+func TestParseCompositeLit(t *testing.T) {
+	t.Parallel()
+
+	ident := func(t *testing.T) {
+		codeSample := `
+			package main
+			func main() {
+				x := &Example{
+					methodCallAsArg(),
+				}
+			}
+
+		`
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.UnaryExpr).X.(*ast.CompositeLit)
+
+		expected := set.New("methodCallAsArg")
+		actual := set.New()
+
+		parseCompositeLit(input, "e", map[string]string{"e": "Example"}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("ident", ident)
+
+	selector := func(t *testing.T) {
+		codeSample := `
+			package main
+			func main() {
+				x := &pkg.Example{
+					e.methodCallAsArg(),
+				}
+			}
+
+		`
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.UnaryExpr).X.(*ast.CompositeLit)
+
+		expected := set.New("Example.methodCallAsArg")
+		actual := set.New()
+
+		parseCompositeLit(input, "e", map[string]string{"e": "Example"}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "actual output does not match expected output")
+	}
+	t.Run("selector", selector)
 }
 
 func TestParseGenDecl(t *testing.T) {
@@ -445,14 +583,14 @@ func TestParseAssignStmt(t *testing.T) {
 	t.Run("composite literal", compositeLiteral)
 }
 
-func TestParseTestFuncDecl(t *testing.T) {
+func TestParseHelperFunction(t *testing.T) {
 	t.Parallel()
-
-	ptrAndNonPtrReturns := func(t *testing.T) {
+	identTest := func(t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
-			func helperBuilder(t *testing. T) (*Example, error) {
+
+			func helperGenerator(t *testing.T) (*Example, error) {
 				return &Example{}, nil
 			}
 		`
@@ -462,24 +600,25 @@ func TestParseTestFuncDecl(t *testing.T) {
 
 		actual := map[string][]string{}
 		expected := map[string][]string{
-			"helperBuilder": {
+			"helperGenerator": {
 				"Example",
 				"error",
 			},
 		}
 
-		parseTestFuncDecl(input, map[string]string{}, actual, set.New())
+		parseHelperFunction(input, actual, set.New())
 
-		assert.Equal(t, expected, actual, "actual output does not match expected output")
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}
-	t.Run("pointer and non-pointer return values", ptrAndNonPtrReturns)
+	t.Run("ident", identTest)
 
-	selectorExpressionReturnType := func(t *testing.T) {
+	selectorTest := func(t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
-			func helperBuilder(t *testing. T) *pkg.Example {
-				return &pkg.Example{}
+
+			func helperGenerator(t *testing.T) (ast.SelectorExpr, error) {
+				return ast.SelectorExpr{}, nil
 			}
 		`
 
@@ -488,14 +627,44 @@ func TestParseTestFuncDecl(t *testing.T) {
 
 		actual := map[string][]string{}
 		expected := map[string][]string{
-			"helperBuilder": {"pkg.Example"},
+			"helperGenerator": {
+				"ast.SelectorExpr",
+				"error",
+			},
 		}
 
-		parseTestFuncDecl(input, map[string]string{}, actual, set.New())
+		parseHelperFunction(input, actual, set.New())
 
-		assert.Equal(t, expected, actual, "actual output does not match expected output")
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}
-	t.Run("selector expression return type", selectorExpressionReturnType)
+	t.Run("selector", selectorTest)
+
+	ptrSelectorTest := func(t *testing.T) {
+		codeSample := `
+			package main
+			import "testing"
+
+			func helperGenerator(t *testing.T) (*ast.SelectorExpr, error) {
+				return &ast.SelectorExpr{}, nil
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl)
+
+		actual := map[string][]string{}
+		expected := map[string][]string{
+			"helperGenerator": {
+				"ast.SelectorExpr",
+				"error",
+			},
+		}
+
+		parseHelperFunction(input, actual, set.New())
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("star selector", ptrSelectorTest)
 }
 
 func TestParseFuncLit(t *testing.T) {
@@ -526,6 +695,156 @@ func TestParseFuncLit(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	}
 	t.Run("all cases", totalTest)
+}
+
+func TestParseReturnStmt(t *testing.T) {
+	t.Parallel()
+
+	test := func(t *testing.T) {
+		codeSample := `
+			package main
+			func main(){
+				return functionCall()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.ReturnStmt)
+
+		actual := set.New()
+		expected := set.New("functionCall")
+
+		parseReturnStmt(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("test", test)
+}
+
+func TestParseSelectStmt(t *testing.T) {
+	t.Parallel()
+
+	test := func(t *testing.T) {
+		codeSample := `
+			package main
+			func main(){
+			temp := make(chan int)
+			go func() {
+				temp <- 0
+			}()
+
+			for {
+				select {
+				case <-temp:
+					functionCall()
+					return
+				}
+			}
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[2].(*ast.ForStmt).Body.List[0].(*ast.SelectStmt)
+
+		actual := set.New()
+		expected := set.New("functionCall")
+
+		parseSelectStmt(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("test", test)
+}
+
+func TestParseSendStmt(t *testing.T) {
+	t.Parallel()
+
+	test := func(t *testing.T) {
+		codeSample := `
+			package main
+			func main(){
+				thing <- First()
+				thing <- func(){
+					Second()
+				}()
+				thing <- x.Third()
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List
+
+		actual := set.New()
+		expected := set.New(
+			"First",
+			"Second",
+			"Example.Third",
+		)
+
+		for _, x := range input {
+			in := x.(*ast.SendStmt)
+			parseSendStmt(in, map[string]string{"x": "Example"}, map[string][]string{}, actual)
+		}
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("test", test)
+}
+
+func TestParseSwitchStmt(t *testing.T) {
+	t.Parallel()
+
+	test := func(t *testing.T) {
+		codeSample := `
+			package main
+			func main(){
+				switch tmp {
+				case tmp:
+					functionCall()
+				}
+			}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.SwitchStmt)
+
+		actual := set.New()
+		expected := set.New("functionCall")
+
+		parseSwitchStmt(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("test", test)
+}
+
+func TestParseTypeSwitchStmt(t *testing.T) {
+	t.Parallel()
+
+	test := func(t *testing.T) {
+		codeSample := `
+ 			package main
+ 			func main(){
+				func(i interface{}) {
+					switch i.(type) {
+					case string:
+						functionCall()
+					}
+				}(tmp)
+ 			}
+ 		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr).Fun.(*ast.FuncLit).Body.List[0].(*ast.TypeSwitchStmt)
+
+		actual := set.New()
+		expected := set.New("functionCall")
+
+		parseTypeSwitchStmt(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	}
+	t.Run("test", test)
 }
 
 func TestParseStmt(t *testing.T) {
@@ -617,6 +936,7 @@ func TestParseStmt(t *testing.T) {
 					}
 				}(tmp)
 
+				// miscellany
 				n := []string{
 					N(),
 				}
@@ -788,9 +1108,143 @@ func TestGetCalledNames(t *testing.T) {
 		)
 		actual := set.New()
 
-		getCalledNames(in, map[string]string{}, map[string][]string{}, actual)
+		helperFunctionMap := map[string][]string{
+			"helperGenerator": {
+				"Example",
+				"error",
+			},
+		}
+		getCalledNames(in, map[string]string{}, helperFunctionMap, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	}
 	t.Run("methods", methods)
+}
+
+func TestFindHelperFuncs(t *testing.T) {
+	methodsPkg := func(t *testing.T) {
+		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
+		if err != nil {
+			t.Logf("failing because ParseFile returned error: %v", err)
+			t.FailNow()
+		}
+
+		expected := map[string][]string{
+			"helperGenerator": {
+				"Example",
+				"error",
+			},
+		}
+		actual := map[string][]string{}
+		findHelperFuncs(in, actual, set.New())
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("methods", methodsPkg)
+}
+
+func TestAnalyze(t *testing.T) {
+	simplePkg := func(t *testing.T) {
+		debug = true
+		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
+		expected := TarpReport{
+			DeclaredDetails: map[string]TarpFunc{
+				"A": {
+					Name:     "A",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   16,
+						Line:     3,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   32,
+						Line:     3,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   46,
+						Line:     5,
+						Column:   1,
+					},
+				},
+				"B": {
+					Name:     "B",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   49,
+						Line:     7,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   65,
+						Line:     7,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   79,
+						Line:     9,
+						Column:   1,
+					},
+				},
+				"C": {
+					Name:     "C",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   82,
+						Line:     11,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   98,
+						Line:     11,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   112,
+						Line:     13,
+						Column:   1,
+					},
+				},
+				"wrapper": {
+					Name:     "wrapper",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   115,
+						Line:     15,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   130,
+						Line:     15,
+						Column:   16,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   147,
+						Line:     19,
+						Column:   1,
+					},
+				},
+			},
+			Called:   set.New("A", "C", "wrapper"),
+			Declared: set.New("A", "B", "C", "wrapper"),
+		}
+		examplePath := buildExamplePackagePath(t, "simple", false)
+		actual := analyze(examplePath)
+
+		assert.Equal(t, expected, actual, "expected output did not match actual output")
+	}
+	t.Run("simple", simplePkg)
 }

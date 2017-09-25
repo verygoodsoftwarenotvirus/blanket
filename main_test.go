@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"go/token"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 	"errors"
 	"github.com/bouk/monkey"
+	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,6 +48,143 @@ func init() {
 	monkey.Patch(log.Fatal, func(...interface{}) {
 		panic("log.Fatal")
 	})
+}
+
+func TestGenerateDiffReport(t *testing.T) {
+	t.Parallel()
+	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
+	exampleReport := TarpReport{
+		DeclaredDetails: map[string]TarpFunc{
+			"A": {
+				Name:     "A",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   16,
+					Line:     3,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   32,
+					Line:     3,
+					Column:   17,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   46,
+					Line:     5,
+					Column:   1,
+				},
+			},
+			"B": {
+				Name:     "B",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   49,
+					Line:     7,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   65,
+					Line:     7,
+					Column:   17,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   79,
+					Line:     9,
+					Column:   1,
+				},
+			},
+			"C": {
+				Name:     "C",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   82,
+					Line:     11,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   98,
+					Line:     11,
+					Column:   17,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   112,
+					Line:     13,
+					Column:   1,
+				},
+			},
+			"wrapper": {
+				Name:     "wrapper",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   115,
+					Line:     15,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   130,
+					Line:     15,
+					Column:   16,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   147,
+					Line:     19,
+					Column:   1,
+				},
+			},
+		},
+		Called:   set.New("A", "C", "wrapper"),
+		Declared: set.New("A", "B", "C", "wrapper"),
+	}
+
+	diff := set.StringSlice(set.Difference(exampleReport.Declared, exampleReport.Called))
+
+	expected := TarpOutput{
+		LongestFunctionNameLength: 1,
+		DeclaredCount:             4,
+		CalledCount:               3,
+		Score:                     75,
+		Details: map[string][]TarpFunc{
+			"/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go": {
+				TarpFunc{
+					Name:     "B",
+					Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+					DeclPos: token.Position{
+						Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+						Offset:   49,
+						Line:     7,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+						Offset:   65,
+						Line:     7,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+						Offset:   79,
+						Line:     9,
+						Column:   1,
+					},
+				},
+			},
+		},
+	}
+	actual := generateDiffReport(diff, exampleReport.DeclaredDetails, exampleReport.Declared.Size(), exampleReport.Called.Size())
+
+	assert.Equal(t, expected, actual, "expected and actual diff reports should match.")
 }
 
 func TestFuncMain(t *testing.T) {
@@ -87,6 +226,18 @@ func TestFuncMain(t *testing.T) {
 		os.Args = originalArgs
 	}
 	t.Run("optimal", optimal)
+
+	perfect := func(t *testing.T) {
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "perfect", false)),
+		}
+
+		main()
+		os.Args = originalArgs
+	}
+	t.Run("perfect", perfect)
 
 	nonexistentPackage := func(t *testing.T) {
 		os.Args = []string{
