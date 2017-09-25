@@ -8,10 +8,12 @@ go:
 before_install:
   # install goveralls
   - go get github.com/mattn/goveralls
+  - go get github.com/verygoodsoftwarenotvirus/tarp
 
 script:
   # unit tests
   - go test -coverprofile=coverage.out
+  - tarp analyze --fail-on-found
 
 after_success:
   # send coverage report to coveralls
