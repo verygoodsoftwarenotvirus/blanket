@@ -578,6 +578,32 @@ func TestParseAssignStmt(t *testing.T) {
 	t.Run("composite literal", compositeLiteral)
 }
 
+func TestParseHelperSelectorExpr(t *testing.T) {
+	t.Parallel()
+
+	codeSample := `
+		package main
+		import "testing"
+
+		func helperGenerator(t *testing.T) (ast.SelectorExpr, error) {
+			return ast.SelectorExpr{}, nil
+		}
+	`
+
+	p := parseChunkOfCode(t, codeSample)
+	input := p.Decls[1].(*ast.FuncDecl).Type.Results.List[0].Type.(*ast.SelectorExpr)
+
+	name := "arbitraryFunctionName"
+	actual := map[string][]string{}
+	expected := map[string][]string{
+		name: {"ast.SelectorExpr"},
+	}
+
+	parseHelperSelectorExpr(input, name, actual)
+
+	assert.Equal(t, expected, actual, "expected output did not match actual output")
+}
+
 func TestParseHelperFunction(t *testing.T) {
 	t.Parallel()
 	identTest := func(t *testing.T) {
@@ -915,7 +941,7 @@ func TestParseStmt(t *testing.T) {
 
 				// Args
 				assert.True(t, x.MethodFour())
-				assert.True(t, z.MethodFive())
+				assert.True(t, x.MethodFive())
 
 				// SwitchStmt
 				switch tmp {
@@ -949,9 +975,6 @@ func TestParseStmt(t *testing.T) {
 			}
 		`
 
-		// FIXME: make these literals
-		helperFunctionMap := map[string][]string{}
-		nameToTypeMap := map[string]string{"z": "Example"}
 		actual := set.New("make")
 		expected := set.New(
 			"A",
@@ -981,7 +1004,7 @@ func TestParseStmt(t *testing.T) {
 
 		p := parseChunkOfCode(t, codeSample)
 		for _, input := range p.Decls[1].(*ast.FuncDecl).Body.List {
-			parseStmt(input, nameToTypeMap, helperFunctionMap, actual)
+			parseStmt(input, map[string]string{"x": "Example"}, map[string][]string{}, actual)
 		}
 
 		diff := set.StringSlice(set.Difference(expected, actual))
