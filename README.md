@@ -79,3 +79,36 @@ I think `tarp` could also be helpful for new developers looking to contribute to
 ## Issues
 
 If you've tried tarp on something and found that it didn't accurately handle some code, or panicked, please feel free to [file an issue](https://github.com/verygoodsoftwarenotvirus/tarp/issues/new). Having an example of the code you experienced issues with is pretty crucial, so keep that in mind.
+
+## Known Issues
+
+`tarp` doesn't adequately handle deeply nested method calls. So if you had something like this:
+
+```go
+package main
+
+import (
+    "testing"
+)
+
+/*
+// in another file:
+type Example struct{}
+func methodCall() {
+    return
+}
+*/
+
+func TestMethod(t *testing.T) {
+    x := struct{
+        First: struct{
+            Second: struct{
+                Third: Example{},
+            },
+        },
+    }
+    x.First.Second.Third.methodCall()
+}
+```
+
+That should technically satisfy tarp's strict testing requirement, but it doesn't. Tarp can handle single-level selector expressions with great ease, but it doesn't recursively dive into those selectors for a number of reasons.
