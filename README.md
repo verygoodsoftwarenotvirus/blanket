@@ -58,7 +58,17 @@ coverage: 100.0% of statements
 ok      github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple    0.006s
 ```
 
-However, note that `B` doesn't have a direct test the way that `A` and `C` do. `B` is only "tested" in `TestWrapper`. Because all the functions are called, `-cover` yields a 100% coverage value. If you ever decide that `wrapper` doesn't need to call `B` anymore, and don't delete the function entirely, you'll have a drop in coverage. What `tarp` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're fine with it, that's cool. If you're not cool with it, then you know what needs to have tests added.
+However, note that `B` doesn't have a direct test the way that `A` and `C` do. `B` is only "tested" in `TestWrapper`. Because all the functions are called, `-cover` yields a 100% coverage value. If you ever decide that `wrapper` doesn't need to call `B` anymore, and don't delete the function entirely, you'll have a drop in coverage. Running `tarp analyze` on that same package yields the following output:
+
+```bash
+Functions without direct unit tests:
+in /Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go:
+    B on line 7
+
+Grade: 75% (3/4 functions)
+```
+
+What `tarp` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're fine with it, that's cool. If you're not cool with it, then you know what needs to have tests added.
 
 I think `tarp` could also be helpful for new developers looking to contribute towards a project. They can run `tarp` on the package and see if there are some functions they could easily add unit tests for, just to get their feet wet in a project.
 
