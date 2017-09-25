@@ -2,6 +2,10 @@
 
 `tarp` is a tool that helps you catch functions which don't have direct unit tests in your Go packages.
 
+## Installation
+
+    go get -u github.com/verygoodsoftwarenotvirus/tarp
+
 ## Usage
 
 Say, for example, you had the following Go file:
