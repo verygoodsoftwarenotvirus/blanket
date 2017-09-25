@@ -1,19 +1,19 @@
 package simple
 
-func A() string {
+func a() string {
 	return "A"
 }
 
-func B() string {
+func b() string {
 	return "B"
 }
 
-func C() string {
+func c() string {
 	return "C"
 }
 
 func wrapper() {
-	A()
-	B()
-	C()
+	a()
+	b()
+	c()
 }

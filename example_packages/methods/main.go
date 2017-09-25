@@ -1,32 +1,32 @@
 package methods
 
-type Example struct{}
+type example struct{}
 
-func (e *Example) A() string {
+func (e *example) A() string {
 	return "A"
 }
 
-func (e *Example) B() string {
+func (e *example) B() string {
 	return "B"
 }
 
-func (e Example) C() string {
+func (e example) C() string {
 	return "C"
 }
 
-func (e Example) D() string {
+func (e example) D() string {
 	return "D"
 }
 
-func (e Example) E() string {
+func (e example) E() string {
 	return "E"
 }
 
-func (e Example) F() string {
+func (e example) F() string {
 	return "F"
 }
 
-func wrapper(e *Example) {
+func wrapper(e *example) {
 	e.A()
 	e.B()
 	e.C()

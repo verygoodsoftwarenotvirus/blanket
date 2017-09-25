@@ -6,22 +6,22 @@ import (
 	"github.com/fatih/set"
 )
 
-type TarpOutput struct {
-	DeclaredCount int
-	CalledCount   int
-	Score         int
-	Details       map[string][]TarpFunc
+type tarpOutput struct {
+	DeclaredCount             int
+	CalledCount               int
+	Score                     int
+	Details                   map[string][]tarpFunc
 	LongestFunctionNameLength int
 }
 
-type TarpReport struct {
-	DeclaredDetails map[string]TarpFunc
+type tarpReport struct {
+	DeclaredDetails map[string]tarpFunc
 	Called          *set.Set
 	Declared        *set.Set
 }
 
-type TarpDetails []TarpFunc
-type TarpFunc struct {
+type tarpDetails []tarpFunc
+type tarpFunc struct {
 	Name      string
 	Filename  string
 	DeclPos   token.Position
@@ -29,11 +29,11 @@ type TarpFunc struct {
 	LBracePos token.Position
 }
 
-func (td TarpDetails) Len() int {
+func (td tarpDetails) Len() int {
 	return len(td)
 }
 
-func (td TarpDetails) Less(i, j int) bool {
+func (td tarpDetails) Less(i, j int) bool {
 	if td[i].Filename < td[j].Filename {
 		return true
 	}
@@ -43,6 +43,6 @@ func (td TarpDetails) Less(i, j int) bool {
 	return td[i].DeclPos.Line < td[j].DeclPos.Line
 }
 
-func (td TarpDetails) Swap(i, j int) {
+func (td tarpDetails) Swap(i, j int) {
 	td[i], td[j] = td[j], td[i]
 }

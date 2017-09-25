@@ -5,15 +5,15 @@ import (
 )
 
 func TestA(t *testing.T) {
-	A()
+	a()
 }
 
 func TestB(t *testing.T) {
-	B()
+	b()
 }
 
 func TestC(t *testing.T) {
-	C()
+	c()
 }
 
 func TestWrapper(t *testing.T) {

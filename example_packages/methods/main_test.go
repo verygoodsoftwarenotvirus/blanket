@@ -5,12 +5,12 @@ import (
 )
 
 var (
-	a Example
+	a example
 )
 
-func helperGenerator(t *testing.T) (*Example, error) {
+func helperGenerator(t *testing.T) (*example, error) {
 	t.Helper()
-	return &Example{}, nil
+	return &example{}, nil
 }
 
 func TestA(t *testing.T) {
@@ -18,12 +18,12 @@ func TestA(t *testing.T) {
 }
 
 func TestB(t *testing.T) {
-	b := Example{}
+	b := example{}
 	b.B()
 }
 
 func TestC(t *testing.T) {
-	c := &Example{}
+	c := &example{}
 	c.D()
 
 }
@@ -34,10 +34,10 @@ func TestD(t *testing.T) {
 }
 
 func TestE(t *testing.T) {
-	var e Example
+	var e example
 	e.E()
 }
 
 func TestWrapper(t *testing.T) {
-	wrapper(&Example{})
+	wrapper(&example{})
 }

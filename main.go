@@ -31,7 +31,7 @@ Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
 var (
 	// flags
 	failOnFound    bool
-	debug 			bool
+	debug          bool
 	analyzePackage string
 
 	// helper variables
@@ -126,9 +126,9 @@ func init() {
 	fileset = token.NewFileSet()
 }
 
-func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc, declaredFuncCount int, calledFuncCount int) TarpOutput {
+func generateDiffReport(diff []string, declaredFuncInfo map[string]tarpFunc, declaredFuncCount int, calledFuncCount int) tarpOutput {
 	longestFunctionNameLength := 0
-	missingFuncs := &TarpDetails{}
+	missingFuncs := &tarpDetails{}
 	for _, s := range diff {
 		if utf8.RuneCountInString(s) > longestFunctionNameLength {
 			longestFunctionNameLength = len(s)
@@ -136,17 +136,17 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]TarpFunc, dec
 		*missingFuncs = append(*missingFuncs, declaredFuncInfo[s])
 	}
 	sort.Sort(missingFuncs)
-	byFilename := map[string][]TarpFunc{}
+	byFilename := map[string][]tarpFunc{}
 	for _, tf := range *missingFuncs {
 		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
 	}
 	score := float64(calledFuncCount) / float64(declaredFuncCount)
 
-	report := TarpOutput{
-		DeclaredCount: declaredFuncCount,
-		CalledCount:   calledFuncCount,
-		Score:         int(score * 100),
-		Details:       byFilename,
+	report := tarpOutput{
+		DeclaredCount:             declaredFuncCount,
+		CalledCount:               calledFuncCount,
+		Score:                     int(score * 100),
+		Details:                   byFilename,
 		LongestFunctionNameLength: longestFunctionNameLength,
 	}
 

@@ -53,8 +53,8 @@ func init() {
 func TestGenerateDiffReport(t *testing.T) {
 	t.Parallel()
 	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-	exampleReport := TarpReport{
-		DeclaredDetails: map[string]TarpFunc{
+	exampleReport := tarpReport{
+		DeclaredDetails: map[string]tarpFunc{
 			"A": {
 				Name:     "A",
 				Filename: simpleMainPath,
@@ -150,14 +150,14 @@ func TestGenerateDiffReport(t *testing.T) {
 
 	diff := set.StringSlice(set.Difference(exampleReport.Declared, exampleReport.Called))
 
-	expected := TarpOutput{
+	expected := tarpOutput{
 		LongestFunctionNameLength: 1,
 		DeclaredCount:             4,
 		CalledCount:               3,
 		Score:                     75,
-		Details: map[string][]TarpFunc{
+		Details: map[string][]tarpFunc{
 			simpleMainPath: {
-				TarpFunc{
+				tarpFunc{
 					Name:     "B",
 					Filename: simpleMainPath,
 					DeclPos: token.Position{

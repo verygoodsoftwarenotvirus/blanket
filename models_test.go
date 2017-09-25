@@ -8,19 +8,19 @@ import (
 )
 
 func TestTarpDetailsMethods(t *testing.T) {
-	arbitraryInstance := TarpDetails{
-		TarpFunc{
+	arbitraryInstance := tarpDetails{
+		tarpFunc{
 			Filename: "a",
 			Name:     "One",
 		},
-		TarpFunc{
+		tarpFunc{
 			Filename: "b",
 			Name:     "Two",
 			DeclPos: token.Position{
 				Line: 1,
 			},
 		},
-		TarpFunc{
+		tarpFunc{
 			Filename: "b",
 			Name:     "Three",
 			DeclPos: token.Position{
@@ -30,7 +30,7 @@ func TestTarpDetailsMethods(t *testing.T) {
 	}
 
 	testLen := func(t *testing.T) {
-		assert.Equal(t, 3, arbitraryInstance.Len(), ".Len() should return the length of TarpDetails")
+		assert.Equal(t, 3, arbitraryInstance.Len(), ".Len() should return the length of tarpDetails")
 	}
 	t.Run(".Len()", testLen)
 
@@ -43,19 +43,19 @@ func TestTarpDetailsMethods(t *testing.T) {
 	t.Run(".Less()", testLess)
 
 	testSwap := func(t *testing.T) {
-		expected := TarpDetails{
-			TarpFunc{
+		expected := tarpDetails{
+			tarpFunc{
 				Filename: "b",
 				Name:     "Two",
 				DeclPos: token.Position{
 					Line: 1,
 				},
 			},
-			TarpFunc{
+			tarpFunc{
 				Filename: "a",
 				Name:     "One",
 			},
-			TarpFunc{
+			tarpFunc{
 				Filename: "b",
 				Name:     "Three",
 				DeclPos: token.Position{

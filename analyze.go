@@ -190,27 +190,27 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 	}
 }
 
+func parseHelperSelectorExpr(in *ast.SelectorExpr, functionName string, helperFunctionReturnMap map[string][]string) {
+	if pkg, ok := in.X.(*ast.Ident); ok {
+		pkgName := pkg.Name
+		pkgStruct := in.Sel.Name
+		helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
+	}
+}
+
 func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	functionName := in.Name.Name
 	if in.Type.Results != nil {
 		for _, r := range in.Type.Results.List {
 			switch rt := r.Type.(type) {
 			case *ast.SelectorExpr:
-				if pkg, ok := rt.X.(*ast.Ident); ok {
-					pkgName := pkg.Name
-					pkgStruct := rt.Sel.Name
-					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
-				}
+				parseHelperSelectorExpr(rt, functionName, helperFunctionReturnMap)
 			case *ast.StarExpr:
 				switch x := rt.X.(type) {
 				case *ast.Ident:
 					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Name)
 				case *ast.SelectorExpr:
-					if pkg, ok := x.X.(*ast.Ident); ok {
-						pkgName := pkg.Name
-						pkgStruct := x.Sel.Name
-						helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], fmt.Sprintf("%s.%s", pkgName, pkgStruct))
-					}
+					parseHelperSelectorExpr(x, functionName, helperFunctionReturnMap)
 				}
 			case *ast.Ident:
 				helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
@@ -325,13 +325,13 @@ func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionRetur
 	}
 }
 
-func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]TarpFunc) {
+func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]tarpFunc) {
 	for _, d := range in.Decls {
 		if f, ok := d.(*ast.FuncDecl); ok {
 			declPos := fileset.Position(f.Type.Func)
 			functionName := parseFuncDecl(f)
 
-			tf := TarpFunc{
+			tf := tarpFunc{
 				Name:     functionName,
 				Filename: declPos.Filename,
 				DeclPos:  declPos,
@@ -372,7 +372,7 @@ func findHelperFuncs(in *ast.File, helperFunctionReturnMap map[string][]string, 
 	}
 }
 
-func analyze(analyzePackage string) TarpReport {
+func analyze(analyzePackage string) tarpReport {
 	gopath := os.Getenv("GOPATH")
 
 	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
@@ -402,7 +402,7 @@ func analyze(analyzePackage string) TarpReport {
 		log.Fatal("no go files found!")
 	}
 
-	declaredFuncInfo := map[string]TarpFunc{}
+	declaredFuncInfo := map[string]tarpFunc{}
 	calledFuncs := set.New("init")
 	helperFunctionReturnMap := map[string][]string{}
 	nameToTypeMap := map[string]string{}
@@ -435,7 +435,7 @@ func analyze(analyzePackage string) TarpReport {
 		calledFuncs.Remove(x)
 	}
 
-	tr := TarpReport{
+	tr := tarpReport{
 		DeclaredDetails: declaredFuncInfo,
 		Declared:        declaredFuncs,
 		Called:          calledFuncs,

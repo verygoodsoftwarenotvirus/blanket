@@ -1001,21 +1001,21 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expected := map[string]TarpFunc{
-			"A": {
-				Name: "A",
+		expected := map[string]tarpFunc{
+			"a": {
+				Name: "a",
 			},
-			"B": {
-				Name: "B",
+			"b": {
+				Name: "b",
 			},
-			"C": {
-				Name: "C",
+			"c": {
+				Name: "c",
 			},
 			"wrapper": {
 				Name: "wrapper",
 			},
 		}
-		actual := map[string]TarpFunc{}
+		actual := map[string]tarpFunc{}
 
 		getDeclaredNames(in, token.NewFileSet(), actual)
 
@@ -1030,30 +1030,30 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expected := map[string]TarpFunc{
-			"Example.A": {
-				Name: "Example.A",
+		expected := map[string]tarpFunc{
+			"example.A": {
+				Name: "example.A",
 			},
-			"Example.B": {
-				Name: "Example.B",
+			"example.B": {
+				Name: "example.B",
 			},
-			"Example.C": {
-				Name: "Example.C",
+			"example.C": {
+				Name: "example.C",
 			},
-			"Example.D": {
-				Name: "Example.D",
+			"example.D": {
+				Name: "example.D",
 			},
-			"Example.E": {
-				Name: "Example.E",
+			"example.E": {
+				Name: "example.E",
 			},
-			"Example.F": {
-				Name: "Example.F",
+			"example.F": {
+				Name: "example.F",
 			},
 			"wrapper": {
 				Name: "wrapper",
 			},
 		}
-		actual := map[string]TarpFunc{}
+		actual := map[string]tarpFunc{}
 
 		getDeclaredNames(in, token.NewFileSet(), actual)
 
@@ -1072,7 +1072,7 @@ func TestGetCalledNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expectedDeclarations := []string{"A", "C", "wrapper"}
+		expectedDeclarations := []string{"a", "c", "wrapper"}
 		expected := set.New()
 		for _, x := range expectedDeclarations {
 			expected.Add(x)
@@ -1094,18 +1094,18 @@ func TestGetCalledNames(t *testing.T) {
 		}
 
 		expected := set.New(
-			"Example.A",
-			"Example.B",
-			"Example.C",
-			"Example.D",
-			"Example.E",
+			"example.A",
+			"example.B",
+			"example.C",
+			"example.D",
+			"example.E",
 			"wrapper",
 		)
 		actual := set.New()
 
 		helperFunctionMap := map[string][]string{
 			"helperGenerator": {
-				"Example",
+				"example",
 				"error",
 			},
 		}
@@ -1126,7 +1126,7 @@ func TestFindHelperFuncs(t *testing.T) {
 
 		expected := map[string][]string{
 			"helperGenerator": {
-				"Example",
+				"example",
 				"error",
 			},
 		}
@@ -1142,10 +1142,10 @@ func TestAnalyze(t *testing.T) {
 	simplePkg := func(t *testing.T) {
 		debug = true
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-		expected := TarpReport{
-			DeclaredDetails: map[string]TarpFunc{
-				"A": {
-					Name:     "A",
+		expected := tarpReport{
+			DeclaredDetails: map[string]tarpFunc{
+				"a": {
+					Name:     "a",
 					Filename: simpleMainPath,
 					DeclPos: token.Position{
 						Filename: simpleMainPath,
@@ -1166,8 +1166,8 @@ func TestAnalyze(t *testing.T) {
 						Column:   1,
 					},
 				},
-				"B": {
-					Name:     "B",
+				"b": {
+					Name:     "b",
 					Filename: simpleMainPath,
 					DeclPos: token.Position{
 						Filename: simpleMainPath,
@@ -1188,8 +1188,8 @@ func TestAnalyze(t *testing.T) {
 						Column:   1,
 					},
 				},
-				"C": {
-					Name:     "C",
+				"c": {
+					Name:     "c",
 					Filename: simpleMainPath,
 					DeclPos: token.Position{
 						Filename: simpleMainPath,
@@ -1233,8 +1233,8 @@ func TestAnalyze(t *testing.T) {
 					},
 				},
 			},
-			Called:   set.New("A", "C", "wrapper"),
-			Declared: set.New("A", "B", "C", "wrapper"),
+			Called:   set.New("a", "c", "wrapper"),
+			Declared: set.New("a", "b", "c", "wrapper"),
 		}
 		examplePath := buildExamplePackagePath(t, "simple", false)
 		actual := analyze(examplePath)
