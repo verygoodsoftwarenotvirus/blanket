@@ -156,24 +156,24 @@ func TestGenerateDiffReport(t *testing.T) {
 		CalledCount:               3,
 		Score:                     75,
 		Details: map[string][]TarpFunc{
-			"/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go": {
+			simpleMainPath: {
 				TarpFunc{
 					Name:     "B",
-					Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+					Filename: simpleMainPath,
 					DeclPos: token.Position{
-						Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+						Filename: simpleMainPath,
 						Offset:   49,
 						Line:     7,
 						Column:   1,
 					},
 					RBracePos: token.Position{
-						Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+						Filename: simpleMainPath,
 						Offset:   65,
 						Line:     7,
 						Column:   17,
 					},
 					LBracePos: token.Position{
-						Filename: "/Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go",
+						Filename: simpleMainPath,
 						Offset:   79,
 						Line:     9,
 						Column:   1,
