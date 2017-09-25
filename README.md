@@ -6,7 +6,7 @@
 
     go get -u github.com/verygoodsoftwarenotvirus/tarp
 
-## Usage
+## Purpose
 
 Say, for example, you had the following Go file:
 
@@ -72,7 +72,11 @@ in /Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_pa
 Grade: 75% (3/4 functions)
 ```
 
+## Use Cases
+
 What `tarp` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're fine with it, that's cool. If you're not cool with it, then you know what needs to have tests added.
+
+You can also use `tarp` in your CI pipeline to decline PRs that would add functions that don't have direct unit tests. As a matter of fact, `tarp` does just that for itself! [Here](https://github.com/verygoodsoftwarenotvirus/tarp/pull/9) is an example of such a scenario working on this very repository!
 
 I think `tarp` could also be helpful for new developers looking to contribute towards a project. They can run `tarp` on the package and see if there are some functions they could easily add unit tests for, just to get their feet wet in a project.
 
