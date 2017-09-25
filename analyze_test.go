@@ -18,11 +18,6 @@ import (
 //                                                    //
 ////////////////////////////////////////////////////////
 
-func arbitraryDependencyUserDeleteMe(t *testing.T) *set.Set {
-	assert.True(t, true)
-	return set.New()
-}
-
 func parseChunkOfCode(t *testing.T, chunkOfCode string) *ast.File {
 	p, err := parser.ParseFile(token.NewFileSet(), "example.go", chunkOfCode, parser.AllErrors)
 	if err != nil {
