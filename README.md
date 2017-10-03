@@ -6,6 +6,12 @@
 
     go get -u github.com/verygoodsoftwarenotvirus/tarp
 
+## Docker Image
+
+If you don't want to install tarp locally, you can use the pre-built Docker image like so:
+
+    docker run -it --rm -v "$(pwd):/src/pkg" verygoodsoftwarenotvirus/tarp:latest analyze --package pkg
+
 ## Purpose
 
 Say, for example, you had the following Go file:
