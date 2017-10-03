@@ -5,7 +5,8 @@ then
 fi
 
 # run tests
-go test -coverprofile=coverage.out
+# go test -coverprofile=coverage.out
+go test -cover -covermode=count -coverprofile=coverage.out
 go tool cover -html=coverage.out
 
 # delete the new coverage report, if it exists, so I don't accidentally commit it to the repo somehow
