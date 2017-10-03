@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"go/token"
 	"log"
@@ -32,6 +33,7 @@ var (
 	// flags
 	failOnFound    bool
 	debug          bool
+	outputAsJSON   bool
 	analyzePackage string
 
 	// helper variables
@@ -42,34 +44,6 @@ var (
 		Use:   "tarp",
 		Short: "tarp is a coverage helper tool",
 		Long:  `tarp is a tool which aims to help ensure you have direct unit tests for all your declared functions for a particular Go package.`,
-	}
-
-	analyzeCmd = &cobra.Command{
-		Use:   "analyze",
-		Short: "Analyze a given package",
-		Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
-		Run: func(cmd *cobra.Command, args []string) {
-			report := analyze(analyzePackage)
-			diff := set.StringSlice(set.Difference(report.Declared, report.Called))
-			diffReport := generateDiffReport(diff, report.DeclaredDetails, report.Declared.Size(), report.Called.Size())
-
-			var templateToUse string
-			if len(diff) > 0 {
-				templateToUse = differenceReportTmpl
-			} else {
-				templateToUse = perfectScoreTmpl
-			}
-
-			var tpl bytes.Buffer
-			// see above re: the error this function returns
-			t, _ := template.New("t").Funcs(templateFuncMap).Parse(templateToUse)
-			t.Execute(&tpl, diffReport)
-			fmt.Println(tpl.String())
-
-			if len(diff) > 0 && failOnFound {
-				os.Exit(1)
-			}
-		},
 	}
 
 	colors = map[string]color.Attribute{
@@ -115,12 +89,46 @@ var (
 			return color.New(colors[grade]).SprintfFunc()(strconv.Itoa(score) + "%%")
 		},
 	}
+
+	analyzeCmd = &cobra.Command{
+		Use:   "analyze",
+		Short: "Analyze a given package",
+		Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
+		Run: func(cmd *cobra.Command, args []string) {
+			report := analyze(analyzePackage)
+			diff := set.StringSlice(set.Difference(report.Declared, report.Called))
+			diffReport := generateDiffReport(diff, report.DeclaredDetails, report.Declared.Size(), report.Called.Size())
+
+			if outputAsJSON {
+				json.NewEncoder(os.Stdout).Encode(diffReport)
+			} else {
+				var templateToUse string
+				if len(diff) > 0 {
+					templateToUse = differenceReportTmpl
+				} else {
+					templateToUse = perfectScoreTmpl
+				}
+
+				var tpl bytes.Buffer
+				// see above re: the error this function returns
+				t, _ := template.New("t").Funcs(templateFuncMap).Parse(templateToUse)
+				t.Execute(&tpl, diffReport)
+				fmt.Println(tpl.String())
+			}
+
+			if len(diff) > 0 && failOnFound {
+				os.Exit(1)
+			}
+		},
+	}
 )
 
 func init() {
 	rootCmd.AddCommand(analyzeCmd)
+
+	analyzeCmd.Flags().BoolVarP(&outputAsJSON, "json", "j", false, "Render results as a JSON blob")
 	analyzeCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Call os.Exit(1) when functions without direct tests are found")
-	analyzeCmd.Flags().BoolVarP(&failOnFound, "fail-on-found", "f", false, "Call os.Exit(1) when functions without direct tests are found")
+	analyzeCmd.Flags().BoolVarP(&failOnFound, "fail-on-found", "F", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", ".", "Package to run analyze on. Defaults to the current directory.")
 
 	fileset = token.NewFileSet()

@@ -389,4 +389,18 @@ func TestFuncMain(t *testing.T) {
 		os.Args = originalArgs
 	}
 	t.Run("pad test", padTest)
+
+	jsonTest := func(t *testing.T) {
+		failOnFound = false
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+			"--json",
+			fmt.Sprintf("--package=%s", buildExamplePackagePath(t, "pad_test", false)),
+		}
+
+		main()
+		os.Args = originalArgs
+	}
+	t.Run("JSON test", jsonTest)
 }

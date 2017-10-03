@@ -7,11 +7,11 @@ import (
 )
 
 type tarpOutput struct {
-	DeclaredCount             int
-	CalledCount               int
-	Score                     int
-	Details                   map[string][]tarpFunc
-	LongestFunctionNameLength int
+	DeclaredCount             int                   `json:"declared"`
+	CalledCount               int                   `json:"called"`
+	Score                     int                   `json:"score"`
+	Details                   map[string][]tarpFunc `json:"-"`
+	LongestFunctionNameLength int                   `json:"-"`
 }
 
 type tarpReport struct {
