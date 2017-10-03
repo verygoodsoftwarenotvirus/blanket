@@ -27,4 +27,4 @@ after_success:
   # send coverage report to coveralls
   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
   # build docker image and send it to dockerhub
-  - docker build --no-cache --tag verygoodsoftwarenotvirus/tarp:latest . && docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" && docker push verygoodsoftwarenotvirus/tarp:latest
+  - if [ `git rev-parse --abbrev-ref HEAD` = "master" ]; then docker build --no-cache --tag verygoodsoftwarenotvirus/tarp:latest . && docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" && docker push verygoodsoftwarenotvirus/tarp:latest; fi;
