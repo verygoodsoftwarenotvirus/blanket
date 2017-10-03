@@ -11,12 +11,7 @@ go:
 before_install:
   # install goveralls
   - go get github.com/mattn/goveralls
-  - go get github.com/verygoodsoftwarenotvirus/tarp
-  # dump this step once multi-stage builds hit Travis
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  - sudo apt-get update
-  - sudo apt-get -y install docker-ce
+  - go install
 
 script:
   # unit tests
@@ -26,5 +21,3 @@ script:
 after_success:
   # send coverage report to coveralls
   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
-  # build docker image and send it to dockerhub
-  - if [ `git rev-parse --abbrev-ref HEAD` = "master" ]; then docker build --no-cache --tag verygoodsoftwarenotvirus/tarp:latest . && docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" && docker push verygoodsoftwarenotvirus/tarp:latest; fi;
