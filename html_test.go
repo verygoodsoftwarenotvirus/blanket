@@ -154,6 +154,7 @@ func TestHTMLOutput(t *testing.T) {
 		fmt.Printf("pwd: %s\n", pwd)
 		epdir := filepath.Dir(pwd)
 		files, err := ioutil.ReadDir(epdir)
+		fmt.Printf("# of files: %d\n", len(files))
 		if err != nil {
 			fmt.Printf(`
 
