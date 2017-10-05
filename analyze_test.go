@@ -1,3 +1,5 @@
+// +build !html
+
 package main
 
 import (
@@ -34,8 +36,6 @@ func parseChunkOfCode(t *testing.T, chunkOfCode string) *ast.File {
 ////////////////////////////////////////////////////////
 
 func TestParseExpr(t *testing.T) {
-	t.Parallel()
-
 	identTest := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -104,8 +104,6 @@ func TestParseExpr(t *testing.T) {
 }
 
 func TestParseCallExpr(t *testing.T) {
-	t.Parallel()
-
 	astIdentTest := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -175,8 +173,6 @@ func TestParseCallExpr(t *testing.T) {
 }
 
 func TestParseUnaryExpr(t *testing.T) {
-	t.Parallel()
-
 	codeSample := `
 			package main
 			type Struct struct{}
@@ -197,8 +193,6 @@ func TestParseUnaryExpr(t *testing.T) {
 }
 
 func TestParseDeclStmt(t *testing.T) {
-	t.Parallel()
-
 	codeSample := `
 		package main
 		func main(){
@@ -218,8 +212,6 @@ func TestParseDeclStmt(t *testing.T) {
 }
 
 func TestParseExprStmt(t *testing.T) {
-	t.Parallel()
-
 	ident := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -266,8 +258,6 @@ func TestParseExprStmt(t *testing.T) {
 }
 
 func TestParseCompositeLit(t *testing.T) {
-	t.Parallel()
-
 	ident := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -314,8 +304,6 @@ func TestParseCompositeLit(t *testing.T) {
 }
 
 func TestParseGenDecl(t *testing.T) {
-	t.Parallel()
-
 	codeSample := `
 		package main
 		var thing string
@@ -334,8 +322,6 @@ func TestParseGenDecl(t *testing.T) {
 }
 
 func TestParseFuncDecl(t *testing.T) {
-	t.Parallel()
-
 	simple := func(t *testing.T) {
 		codeSample := `
 			package test
@@ -388,8 +374,6 @@ func TestParseFuncDecl(t *testing.T) {
 }
 
 func TestParseAssignStmt(t *testing.T) {
-	t.Parallel()
-
 	callExpr := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -579,8 +563,6 @@ func TestParseAssignStmt(t *testing.T) {
 }
 
 func TestParseHelperSelectorExpr(t *testing.T) {
-	t.Parallel()
-
 	codeSample := `
 		package main
 		import "testing"
@@ -605,7 +587,6 @@ func TestParseHelperSelectorExpr(t *testing.T) {
 }
 
 func TestParseHelperFunction(t *testing.T) {
-	t.Parallel()
 	identTest := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -689,8 +670,6 @@ func TestParseHelperFunction(t *testing.T) {
 }
 
 func TestParseFuncLit(t *testing.T) {
-	t.Parallel()
-
 	totalTest := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -719,8 +698,6 @@ func TestParseFuncLit(t *testing.T) {
 }
 
 func TestParseReturnStmt(t *testing.T) {
-	t.Parallel()
-
 	test := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -743,8 +720,6 @@ func TestParseReturnStmt(t *testing.T) {
 }
 
 func TestParseSelectStmt(t *testing.T) {
-	t.Parallel()
-
 	test := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -778,8 +753,6 @@ func TestParseSelectStmt(t *testing.T) {
 }
 
 func TestParseSendStmt(t *testing.T) {
-	t.Parallel()
-
 	test := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -813,8 +786,6 @@ func TestParseSendStmt(t *testing.T) {
 }
 
 func TestParseSwitchStmt(t *testing.T) {
-	t.Parallel()
-
 	test := func(t *testing.T) {
 		codeSample := `
 			package main
@@ -840,8 +811,6 @@ func TestParseSwitchStmt(t *testing.T) {
 }
 
 func TestParseTypeSwitchStmt(t *testing.T) {
-	t.Parallel()
-
 	test := func(t *testing.T) {
 		codeSample := `
  			package main
@@ -1015,8 +984,6 @@ func TestParseStmt(t *testing.T) {
 }
 
 func TestGetDeclaredNames(t *testing.T) {
-	t.Parallel()
-
 	simple := func(t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main.go", nil, parser.AllErrors)
 		if err != nil {
@@ -1086,8 +1053,6 @@ func TestGetDeclaredNames(t *testing.T) {
 }
 
 func TestGetCalledNames(t *testing.T) {
-	t.Parallel()
-
 	simple := func(t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
 		if err != nil {

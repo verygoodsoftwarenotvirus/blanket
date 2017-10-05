@@ -2,7 +2,7 @@
 	Most of this file was taken from https://github.com/golang/tools/blob/f1a397bba50dee815e8c73f3ec94ffc0e8df1a09/cmd/cover/html.go
 	which has all the functions `go tool` uses to generate the HTML we want, none of which are exported
 
-	I've left the copyright notice here, but have modified certain function names and arguments and so on
+	I've left the copyright notice here, but have modified functions, function names, arguments, etc.
 */
 
 // Copyright 2013 The Go Authors. All rights reserved.
@@ -24,13 +24,123 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"golang.org/x/tools/cover"
 )
 
+const (
+	tarpClassName = "tarp-uncovered"
+	tarpColor     = "rgb(252, 242, 106)"
+	tmplHTML      = `
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 1px;
+			}
+			{{colors}}
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+{{range $i, $f := .Files}}
+				<option value="file{{$i}}">{{$f.Name}} ({{printf "%.1f" $f.Coverage}}%)</option>
+{{end}}
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+{{if .Set}}
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+{{else}}
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+{{end}}
+				<span class="tarp-uncovered">indirectly tested</span>
+			</div>
+		</div>
+		<div id="content">
+{{range $i, $f := .Files}}
+		<pre class="file" id="file{{$i}}" {{if $i}}style="display: none"{{end}}>{{$f.Body}}</pre>
+{{end}}
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible = document.getElementById('file0');
+		files.addEventListener('change', onChange, false);
+		function onChange() {
+			visible.style.display = 'none';
+			visible = document.getElementById(files.value);
+			visible.style.display = 'block';
+			window.scrollTo(0, 0);
+		}
+	})();
+	</script>
+</html>
+`
+)
+
+var htmlTemplate = template.Must(template.New("html").Funcs(template.FuncMap{"colors": CSScolors}).Parse(tmplHTML))
+
+type templateData struct {
+	Files []*templateFile
+	Set   bool
+}
+
+type templateFile struct {
+	Name     string
+	Body     template.HTML
+	Coverage float64
+}
+
 // findFile finds the location of the named file in GOROOT, GOPATH etc.
-func findFile(file string) (string, error) {
-	dir, file := filepath.Split(file)
+func findFile(path string) (string, error) {
+	dir, file := filepath.Split(path)
 	pkg, err := build.Import(dir, ".", build.FindOnly)
 	if err != nil {
 		return "", fmt.Errorf("can't find %q: %v", file, err)
@@ -41,8 +151,8 @@ func findFile(file string) (string, error) {
 // htmlOutput reads the profile data from profile and generates an HTML
 // coverage report, writing it to outfile. If outfile is empty,
 // it writes the report to a temporary file and opens it in a web browser.
-func htmlOutput(profile, outfile string) error {
-	profiles, err := cover.ParseProfiles(profile)
+func htmlOutput(profilePath, outfile string, report tarpReport) error {
+	profiles, err := cover.ParseProfiles(profilePath)
 	if err != nil {
 		return err
 	}
@@ -62,14 +172,16 @@ func htmlOutput(profile, outfile string) error {
 		if err != nil {
 			return fmt.Errorf("can't read %q: %v", fn, err)
 		}
+
 		var buf bytes.Buffer
-		err = htmlGen(&buf, src, profile.Boundaries(src))
+		err = htmlGen(&buf, src, fn, profile.Boundaries(src), report)
 		if err != nil {
 			return err
 		}
+		bufString := buf.String()
 		d.Files = append(d.Files, &templateFile{
 			Name:     fn,
-			Body:     template.HTML(buf.String()),
+			Body:     template.HTML(bufString),
 			Coverage: percentCovered(profile),
 		})
 	}
@@ -124,17 +236,34 @@ func percentCovered(p *cover.Profile) float64 {
 
 // htmlGen generates an HTML coverage report with the provided filename,
 // source code, and tokens, and writes it to the given Writer.
-func htmlGen(w io.Writer, src []byte, boundaries []cover.Boundary) error {
+func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report tarpReport) error {
 	dst := bufio.NewWriter(w)
+
+	currentLine := 1
 	for i := range src {
 		for len(boundaries) > 0 && boundaries[0].Offset == i {
 			b := boundaries[0]
 			if b.Start {
+				var relevantFunc tarpFunc
+				for _, d := range report.DeclaredDetails {
+					if strings.Contains(d.Filename, filename) {
+						if d.RBracePos.Line == currentLine {
+							relevantFunc = d
+							break
+						}
+					}
+				}
+				relevantFuncCalled := report.Called.Has(relevantFunc.Name)
+
 				n := 0
 				if b.Count > 0 {
 					n = int(math.Floor(b.Norm*9)) + 1
 				}
-				fmt.Fprintf(dst, `<span class="cov%v" title="%v">`, n, b.Count)
+				if relevantFunc.Name != "" && n > 0 && !relevantFuncCalled {
+					fmt.Fprintf(dst, `<span class="%s" title="%v">`, tarpClassName, b.Count)
+				} else {
+					fmt.Fprintf(dst, `<span class="cov%v" title="%v">`, n, b.Count)
+				}
 			} else {
 				dst.WriteString("</span>")
 			}
@@ -148,7 +277,10 @@ func htmlGen(w io.Writer, src []byte, boundaries []cover.Boundary) error {
 		case '&':
 			dst.WriteString("&amp;")
 		case '\t':
-			dst.WriteString("        ")
+			dst.WriteString("    ")
+		case '\n':
+			currentLine++
+			dst.WriteByte(b)
 		default:
 			dst.WriteByte(b)
 		}
@@ -156,12 +288,17 @@ func htmlGen(w io.Writer, src []byte, boundaries []cover.Boundary) error {
 	return dst.Flush()
 }
 
+// goose is a wrapper for runtime.GOOS that we can actually monkey patch
+func goose() string {
+	return runtime.GOOS
+}
+
 // startBrowser tries to open the URL in a browser
 // and reports whether it succeeds.
 func startBrowser(url string) bool {
 	// try to start the browser
 	var args []string
-	switch runtime.GOOS {
+	switch goose() {
 	case "darwin":
 		args = []string{"open"}
 	case "windows":
@@ -169,8 +306,8 @@ func startBrowser(url string) bool {
 	default:
 		args = []string{"xdg-open"}
 	}
-	cmd := exec.Command(args[0], append(args[1:], url)...)
-	return cmd.Start() == nil
+	command := exec.Command(args[0], append(args[1:], url)...)
+	return command.Start() == nil
 }
 
 // rgb returns an rgb value for the specified coverage value
@@ -192,114 +329,6 @@ func CSScolors() template.CSS {
 	for i := 0; i < 11; i++ {
 		fmt.Fprintf(&buf, ".cov%v { color: %v }\n\t\t\t", i, rgb(i))
 	}
-	fmt.Fprint(&buf, ".tarp-uncovered { color: rgb(236, 221, 20) }\n")
+	fmt.Fprint(&buf, fmt.Sprintf(".%s { color: %s }\n", tarpClassName, tarpColor))
 	return template.CSS(buf.String())
 }
-
-var htmlTemplate = template.Must(template.New("html").Funcs(template.FuncMap{
-	"colors": CSScolors,
-}).Parse(tmplHTML))
-
-type templateData struct {
-	Files []*templateFile
-	Set   bool
-}
-
-type templateFile struct {
-	Name     string
-	Body     template.HTML
-	Coverage float64
-}
-
-// $f.Body is the actual code file
-const tmplHTML = `
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<style>
-			body {
-				background: black;
-				color: rgb(80, 80, 80);
-			}
-			body, pre, #legend span {
-				font-family: Menlo, monospace;
-				font-weight: bold;
-			}
-			#topbar {
-				background: black;
-				position: fixed;
-				top: 0; left: 0; right: 0;
-				height: 42px;
-				border-bottom: 1px solid rgb(80, 80, 80);
-			}
-			#content {
-				margin-top: 50px;
-			}
-			#nav, #legend {
-				float: left;
-				margin-left: 10px;
-			}
-			#legend {
-				margin-top: 12px;
-			}
-			#nav {
-				margin-top: 10px;
-			}
-			#legend span {
-				margin: 0 1px;
-			}
-			{{colors}}
-		</style>
-	</head>
-	<body>
-		<div id="topbar">
-			<div id="nav">
-				<select id="files">
-				{{range $i, $f := .Files}}
-				<option value="file{{$i}}">{{$f.Name}} ({{printf "%.1f" $f.Coverage}}%)</option>
-				{{end}}
-				</select>
-			</div>
-			<div id="legend">
-				<span>not tracked</span>
-			{{if .Set}}
-				<span class="cov0">not covered</span>
-				<span class="cov8">covered</span>
-			{{else}}
-				<span class="cov0">no coverage</span>
-				<span class="cov1">low coverage</span>
-				<span class="cov2">*</span>
-				<span class="cov3">*</span>
-				<span class="cov4">*</span>
-				<span class="cov5">*</span>
-				<span class="cov6">*</span>
-				<span class="cov7">*</span>
-				<span class="cov8">*</span>
-				<span class="cov9">*</span>
-				<span class="cov10">high coverage</span>
-				<span class="tarp-uncovered">indirectly tested</span>
-			{{end}}
-			</div>
-		</div>
-		<div id="content">
-		{{range $i, $f := .Files}}
-		<pre class="file" id="file{{$i}}" {{if $i}}style="display: none"{{end}}>{{$f.Body}}</pre>
-		{{end}}
-		</div>
-	</body>
-	<script>
-	(function() {
-		var files = document.getElementById('files');
-		var visible = document.getElementById('file0');
-		files.addEventListener('change', onChange, false);
-		function onChange() {
-			visible.style.display = 'none';
-			visible = document.getElementById(files.value);
-			visible.style.display = 'block';
-			window.scrollTo(0, 0);
-		}
-	})();
-	</script>
-</html>
-`

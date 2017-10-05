@@ -1,8 +1,9 @@
-// +build !unit
+// +build !html
 
 package main
 
 import (
+	"errors"
 	"fmt"
 	"go/token"
 	"io/ioutil"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"errors"
 	"github.com/bouk/monkey"
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +51,6 @@ func init() {
 }
 
 func TestGenerateDiffReport(t *testing.T) {
-	t.Parallel()
 	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
 	exampleReport := tarpReport{
 		DeclaredDetails: map[string]tarpFunc{
