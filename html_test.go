@@ -11,8 +11,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 
 	"golang.org/x/tools/cover"
@@ -30,12 +30,16 @@ import (
 
 func buildExampleFileAbsPath(t *testing.T, filename string) string {
 	t.Helper()
-	pwd, err := os.Getwd()
+
+	abspath, err := filepath.Abs(filename)
+
+	//pwd, err := os.Getwd()
 	if err != nil {
 		log.Println("encountered error getting the current working directory")
 		t.FailNow()
 	}
-	return strings.Join([]string{pwd, filename}, "/")
+	//return strings.Join([]string{pwd, filename}, "/")
+	return abspath
 }
 
 ////////////////////////////////////////////////////////
