@@ -28,10 +28,10 @@ import (
 //                                                    //
 ////////////////////////////////////////////////////////
 
-func buildSelfPath(t *testing.T) string {
+func buildExampleFileAbsPath(t *testing.T, filename string) string {
 	t.Helper()
 	gopath := os.Getenv("GOPATH")
-	return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp"}, "/")
+	return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp", filename}, "/")
 }
 
 ////////////////////////////////////////////////////////
@@ -56,6 +56,7 @@ func TestFindFile(t *testing.T) {
 
 func TestHTMLOutput(t *testing.T) {
 	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
+	simpleCountPath := buildExampleFileAbsPath(t, "example_files/simple_count.out")
 	exampleReport := tarpReport{
 		Called:   set.New("a", "c", "wrapper"),
 		Declared: set.New("a", "b", "c", "wrapper"),
@@ -98,7 +99,7 @@ func TestHTMLOutput(t *testing.T) {
 	t.Run("with failure to parse profile", withFailureToParseProfile)
 
 	withFailureToFindFile := func(t *testing.T) {
-		exampleProfilePath := "example_files/nonexistent_file.out"
+		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/nonexistent_file.out")
 		err := htmlOutput(exampleProfilePath, "", tarpReport{})
 		assert.NotNil(t, err)
 	}
@@ -107,7 +108,7 @@ func TestHTMLOutput(t *testing.T) {
 	withFailureToReadFile := func(t *testing.T) {
 		monkey.Patch(ioutil.ReadFile, func(string) ([]byte, error) { return []byte{}, errors.New("pineapple on pizza") })
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", tarpReport{})
 		assert.NotNil(t, err)
 
@@ -120,7 +121,7 @@ func TestHTMLOutput(t *testing.T) {
 			return errors.New("pineapple on pizza")
 		})
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", tarpReport{})
 		assert.NotNil(t, err)
 
@@ -131,7 +132,7 @@ func TestHTMLOutput(t *testing.T) {
 	withoutOutputFile := func(t *testing.T) {
 		monkey.Patch(startBrowser, func(url string, os string) bool { return true })
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", exampleReport)
 		assert.Nil(t, err)
 
@@ -142,7 +143,7 @@ func TestHTMLOutput(t *testing.T) {
 	withoutOutputFileAndTempDirFailure := func(t *testing.T) {
 		monkey.Patch(ioutil.TempDir, func(string, string) (string, error) { return "", errors.New("pineapple on pizza") })
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", exampleReport)
 		assert.NotNil(t, err)
 
@@ -153,7 +154,7 @@ func TestHTMLOutput(t *testing.T) {
 	withoutOutputFileAndOSCreateError := func(t *testing.T) {
 		monkey.Patch(os.Create, func(string) (*os.File, error) { return nil, errors.New("pineapple on pizza") })
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", exampleReport)
 		assert.NotNil(t, err)
 
@@ -164,7 +165,7 @@ func TestHTMLOutput(t *testing.T) {
 	withoutOutputFileAndOSFileCloseError := func(t *testing.T) {
 		monkey.Patch(os.Create, func(string) (*os.File, error) { return nil, nil })
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", exampleReport)
 		assert.NotNil(t, err)
 
@@ -180,7 +181,7 @@ func TestHTMLOutput(t *testing.T) {
 			return 0, nil
 		})
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := simpleCountPath
 		err := htmlOutput(exampleProfilePath, "", exampleReport)
 		assert.Nil(t, err)
 		assert.True(t, fmtFprintfCalled)
@@ -191,8 +192,8 @@ func TestHTMLOutput(t *testing.T) {
 	t.Run("with failure to start the browser", withoutFailureToStartBrowser)
 
 	simpleCount := func(t *testing.T) {
-		exampleProfilePath := "example_files/simple_count.out"
-		tmpFile := fmt.Sprintf("%s/temp.html", buildSelfPath(t))
+		exampleProfilePath := simpleCountPath
+		tmpFile := buildExampleFileAbsPath(t, "temp.html")
 
 		err := htmlOutput(exampleProfilePath, tmpFile, exampleReport)
 		if err != nil {
@@ -334,8 +335,8 @@ func wrapper() <span class="cov1" title="1">{
 	t.Run("simple count", simpleCount)
 
 	simpleSet := func(t *testing.T) {
-		exampleProfilePath := "example_files/simple_set.out"
-		tmpFile := fmt.Sprintf("%s/temp.html", buildSelfPath(t))
+		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/simple_set.out")
+		tmpFile := buildExampleFileAbsPath(t, "temp.html")
 
 		err := htmlOutput(exampleProfilePath, tmpFile, exampleReport)
 		if err != nil {
@@ -566,7 +567,7 @@ func TestHTMLGen(t *testing.T) {
 			},
 		}
 
-		exampleProfilePath := "example_files/simple_count.out"
+		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/simple_count.out")
 		profiles, err := cover.ParseProfiles(exampleProfilePath)
 		if err != nil {
 			log.Printf("error reading profile: %s\n", simpleMainPath)
@@ -706,7 +707,7 @@ func wrapper() <span class="cov1" title="1">{
 			},
 		}
 
-		exampleProfilePath := "example_files/conditionals.out"
+		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/conditionals.out")
 		profiles, err := cover.ParseProfiles(exampleProfilePath)
 		if err != nil {
 			log.Printf("error reading profile: %s\n", simpleMainPath)
