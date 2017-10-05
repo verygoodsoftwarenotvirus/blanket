@@ -30,8 +30,12 @@ import (
 
 func buildExampleFileAbsPath(t *testing.T, filename string) string {
 	t.Helper()
-	gopath := os.Getenv("GOPATH")
-	return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp", filename}, "/")
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Println("encountered error getting the current working directory")
+		t.FailNow()
+	}
+	return strings.Join([]string{pwd, filename}, "/")
 }
 
 ////////////////////////////////////////////////////////
@@ -103,7 +107,7 @@ func TestHTMLOutput(t *testing.T) {
 		err := htmlOutput(exampleProfilePath, "", tarpReport{})
 		assert.NotNil(t, err)
 	}
-	t.Run("with failure to parse profile", withFailureToFindFile)
+	t.Run("with failure to find src file", withFailureToFindFile)
 
 	withFailureToReadFile := func(t *testing.T) {
 		monkey.Patch(ioutil.ReadFile, func(string) ([]byte, error) { return []byte{}, errors.New("pineapple on pizza") })
