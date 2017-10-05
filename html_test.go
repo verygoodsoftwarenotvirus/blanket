@@ -152,12 +152,12 @@ func TestHTMLOutput(t *testing.T) {
 			t.FailNow()
 		}
 		fmt.Printf("pwd: %s\n", pwd)
-		epdir := filepath.Dir(exampleProfilePath)
+		epdir := filepath.Dir(pwd)
 		files, err := ioutil.ReadDir(epdir)
 		if err != nil {
 			fmt.Printf(`
 
-			err reading epdir: %v
+			err running ls on pwd: %v
 
 			`, err)
 			t.FailNow()
