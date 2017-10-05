@@ -2,6 +2,9 @@ sudo: required
 
 language: go
 
+services:
+  - docker
+
 go:
   - master
 
@@ -12,9 +15,10 @@ before_install:
 
 script:
   # unit tests
-  - go test -v -race -coverprofile=coverage.out
+  - docker build -t tarp_test -f test.Dockerfile .
+  - docker run --name tarp_test --rm tarp_test
   - tarp analyze --fail-on-found
 
-after_success:
-  # send coverage report to coveralls
-  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+# after_success:
+#   # send coverage report to coveralls
+#   - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
