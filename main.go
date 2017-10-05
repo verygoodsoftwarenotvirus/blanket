@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/token"
-	"os"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"text/template"
@@ -17,9 +17,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/fatih/set"
 	"github.com/spf13/cobra"
-	"strings"
 	"golang.org/x/tools/cover"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -34,7 +34,7 @@ Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
 
 var (
 	// global flags
-	debug          bool
+	debug bool
 
 	// analyze flags
 	failOnFound    bool
@@ -51,7 +51,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "tarp",
 		Short: "tarp is a coverage helper tool",
-		Long:  `tarp is a tool which aims to help ensure you have direct unit tests for all your declared functions for a particular Go package.`,
+		Long:  `tarp is a tool that helps you catch functions which don't have direct unit tests in your Go libraries`,
 	}
 
 	colors = map[string]color.Attribute{
@@ -67,7 +67,7 @@ var (
 
 	templateFuncMap = template.FuncMap{
 		"pad": func(s string, longest int) string {
-			return fmt.Sprintf("%s%s", strings.Repeat(" ", longest - utf8.RuneCountInString(s)), s)
+			return fmt.Sprintf("%s%s", strings.Repeat(" ", longest-utf8.RuneCountInString(s)), s)
 		},
 		"colorizer": func(s string, c string, bold bool) string {
 			arguments := []color.Attribute{colors[c]}
@@ -146,7 +146,7 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Call os.Exit(1) when functions without direct tests are found")
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Print select debug information")
 	fileset = token.NewFileSet()
 
 	rootCmd.AddCommand(analyzeCmd)
@@ -186,7 +186,7 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]tarpFunc, dec
 }
 
 func main() {
-	 if err := rootCmd.Execute(); err != nil {
-	 	log.Fatal(err)
-	 }
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
+	}
 }
