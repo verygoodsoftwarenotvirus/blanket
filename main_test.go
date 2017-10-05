@@ -402,4 +402,63 @@ func TestFuncMain(t *testing.T) {
 		os.Args = originalArgs
 	}
 	t.Run("JSON test", jsonTest)
+
+	coverTest := func(t *testing.T) {
+		monkey.Patch(startBrowser, func(url, os string) bool { return true })
+		os.Args = []string{
+			originalArgs[0],
+			"cover",
+			"--html=example_files/simple_count.out",
+		}
+
+		main()
+		os.Args = originalArgs
+		monkey.Unpatch(startBrowser)
+	}
+	t.Run("basic cover test", coverTest)
+
+	coverTestWithErrorParsingProfiles := func(t *testing.T) {
+		var fatalCalled bool
+		defer func() {
+			// recovered from our monkey patched log.Fatal
+			if r := recover(); r != nil {
+				fatalCalled = true
+			}
+		}()
+
+		os.Args = []string{
+			originalArgs[0],
+			"cover",
+			`--html=""`,
+		}
+
+		main()
+		assert.True(t, fatalCalled)
+		os.Args = originalArgs
+	}
+	t.Run("cover fails when it cannot parse the profile", coverTestWithErrorParsingProfiles)
+
+	coverTestWithErrorGeneratingHTMLOutput := func(t *testing.T) {
+		monkey.Patch(htmlOutput, func(string, string, tarpReport) error { return errors.New("pineapple on pizza") })
+
+		var fatalCalled bool
+		defer func() {
+			// recovered from our monkey patched log.Fatal
+			if r := recover(); r != nil {
+				fatalCalled = true
+			}
+		}()
+
+		os.Args = []string{
+			originalArgs[0],
+			"cover",
+			"--html=example_files/simple_count.out",
+		}
+
+		main()
+		assert.True(t, fatalCalled)
+		os.Args = originalArgs
+		monkey.Unpatch(htmlOutput)
+	}
+	t.Run("cover fails when it cannot generate HTML output", coverTestWithErrorGeneratingHTMLOutput)
 }

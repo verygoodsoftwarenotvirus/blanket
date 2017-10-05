@@ -99,7 +99,7 @@ const (
 				<span class="cov9">*</span>
 				<span class="cov10">high coverage</span>
 {{end}}
-				<span class="tarp-uncovered">indirectly tested</span>
+				<span class="tarp-uncovered">indirectly covered</span>
 			</div>
 		</div>
 		<div id="content">
@@ -110,8 +110,8 @@ const (
 	</body>
 	<script>
 	(function() {
-		var files = document.getElementById('files');
-		var visible = document.getElementById('file0');
+		let files = document.getElementById('files');
+		let visible = document.getElementById('file0');
 		files.addEventListener('change', onChange, false);
 		function onChange() {
 			visible.style.display = 'none';
@@ -173,8 +173,9 @@ func htmlOutput(profilePath, outfile string, report tarpReport) error {
 			return fmt.Errorf("can't read %q: %v", fn, err)
 		}
 
+		boundaries := profile.Boundaries(src)
 		var buf bytes.Buffer
-		err = htmlGen(&buf, src, fn, profile.Boundaries(src), report)
+		err = htmlGen(&buf, src, fn, boundaries, report)
 		if err != nil {
 			return err
 		}
@@ -209,7 +210,7 @@ func htmlOutput(profilePath, outfile string, report tarpReport) error {
 	}
 
 	if outfile == "" {
-		if !startBrowser("file://" + out.Name()) {
+		if !startBrowser(fmt.Sprintf("file://%s", out.Name()), goose()) {
 			fmt.Fprintf(os.Stderr, "HTML output written to %s\n", out.Name())
 		}
 	}
@@ -295,10 +296,10 @@ func goose() string {
 
 // startBrowser tries to open the URL in a browser
 // and reports whether it succeeds.
-func startBrowser(url string) bool {
+func startBrowser(url string, os string) bool {
 	// try to start the browser
 	var args []string
-	switch goose() {
+	switch os {
 	case "darwin":
 		args = []string{"open"}
 	case "windows":
