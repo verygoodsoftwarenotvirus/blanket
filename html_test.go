@@ -141,7 +141,22 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Patch(startBrowser, func(url string, os string) bool { return true })
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", exampleReport)
+
+		epdir := filepath.Dir(exampleProfilePath)
+		files, err := ioutil.ReadDir(epdir)
+		if err != nil {
+			fmt.Printf(`
+
+			err: %v
+
+			`, err)
+			t.FailNow()
+		}
+		for _, f := range files {
+			fmt.Printf("\t\t%s/%s\n", epdir, f.Name())
+		}
+
+		err = htmlOutput(exampleProfilePath, "", exampleReport)
 		assert.Nil(t, err)
 
 		monkey.Unpatch(startBrowser)
