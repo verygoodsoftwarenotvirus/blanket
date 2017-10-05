@@ -408,7 +408,7 @@ func TestFuncMain(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"cover",
-			"--html=example_files/simple_count.out",
+			"--html=example_files/simple_count.coverprofile",
 		}
 
 		main()
@@ -452,7 +452,7 @@ func TestFuncMain(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"cover",
-			"--html=example_files/simple_count.out",
+			"--html=example_files/simple_count.coverprofile",
 		}
 
 		main()

@@ -1,1 +1,0 @@
-docker build -t tarp_test -f test.Dockerfile . && docker run --name tarp_test --rm tarp_test
