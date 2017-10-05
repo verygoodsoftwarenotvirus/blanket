@@ -78,7 +78,7 @@ in /Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_pa
 Grade: 75% (3/4 functions)
 ```
 
-Additionally, you can use the `cover` command to visualize those functions by passing in a cover profile. So if you ran `go test -coverprofile=coverage.out`, and then ran `tarp cover --html=coverage.out`, a browser window will open that shows untested functions in red, functions without direct tests in yellow, and functions that are directly tested in green, like so:
+Additionally, you can use the `cover` command to visualize those functions by passing in a cover profile. So if you run something like `go test -coverprofile=coverage.out && tarp cover --html=coverage.out`, a browser window will open that shows untested functions in red, functions without direct tests in yellow, and functions that are directly tested in green, like so:
 
 ![](example_files/cover_screenshot.png)
 
