@@ -1,3 +1,5 @@
+// +build !html
+
 package main
 
 import (

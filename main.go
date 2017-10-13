@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"go/token"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"text/template"
@@ -16,7 +17,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/fatih/set"
 	"github.com/spf13/cobra"
-	"os"
+	"golang.org/x/tools/cover"
+	"path/filepath"
+	"strings"
 )
 
 const (
@@ -30,11 +33,16 @@ Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
 )
 
 var (
-	// flags
+	// global flags
+	debug bool
+
+	// analyze flags
 	failOnFound    bool
-	debug          bool
 	outputAsJSON   bool
 	analyzePackage string
+
+	// cover flags
+	coverprofile string
 
 	// helper variables
 	fileset *token.FileSet
@@ -43,7 +51,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "tarp",
 		Short: "tarp is a coverage helper tool",
-		Long:  `tarp is a tool which aims to help ensure you have direct unit tests for all your declared functions for a particular Go package.`,
+		Long:  `tarp is a tool that helps you catch functions which don't have direct unit tests in your Go libraries`,
 	}
 
 	colors = map[string]color.Attribute{
@@ -59,12 +67,7 @@ var (
 
 	templateFuncMap = template.FuncMap{
 		"pad": func(s string, longest int) string {
-			// https://github.com/willf/pad/blob/master/pad.go
-			numberOfSpacesToAdd := longest - utf8.RuneCountInString(s)
-			for i := 0; i < numberOfSpacesToAdd; i++ {
-				s += " "
-			}
-			return s
+			return fmt.Sprintf("%s%s", strings.Repeat(" ", longest-utf8.RuneCountInString(s)), s)
 		},
 		"colorizer": func(s string, c string, bold bool) string {
 			arguments := []color.Attribute{colors[c]}
@@ -121,17 +124,38 @@ var (
 			}
 		},
 	}
+
+	coverCmd = &cobra.Command{
+		Use:   "cover",
+		Short: "Open a web browser displaying annotated source code",
+		Long:  "Cover takes a given coverprofile and produces HTML with coverage info",
+		Run: func(cmd *cobra.Command, args []string) {
+			profiles, err := cover.ParseProfiles(coverprofile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			pkgPath := filepath.Dir(profiles[0].FileName)
+
+			report := analyze(pkgPath)
+			err = htmlOutput(coverprofile, "", report)
+			if err != nil {
+				log.Fatal(err)
+			}
+		},
+	}
 )
 
 func init() {
-	rootCmd.AddCommand(analyzeCmd)
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Print select debug information")
+	fileset = token.NewFileSet()
 
+	rootCmd.AddCommand(analyzeCmd)
 	analyzeCmd.Flags().BoolVarP(&outputAsJSON, "json", "j", false, "Render results as a JSON blob")
-	analyzeCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().BoolVarP(&failOnFound, "fail-on-found", "F", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", ".", "Package to run analyze on. Defaults to the current directory.")
 
-	fileset = token.NewFileSet()
+	rootCmd.AddCommand(coverCmd)
+	coverCmd.Flags().StringVarP(&coverprofile, "html", "c", "", "coverprofile to generate HTML for.")
 }
 
 func generateDiffReport(diff []string, declaredFuncInfo map[string]tarpFunc, declaredFuncCount int, calledFuncCount int) tarpOutput {

@@ -78,6 +78,10 @@ in /Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_pa
 Grade: 75% (3/4 functions)
 ```
 
+Additionally, you can use the `cover` command to visualize those functions by passing in a cover profile. So if you run something like `go test -coverprofile=coverage.out && tarp cover --html=coverage.out`, a browser window will open that shows untested functions in red, functions without direct tests in yellow, and functions that are directly tested in green, like so:
+
+![](example_files/cover_screenshot.png)
+
 ## Use Cases
 
 What `tarp` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're fine with it, that's cool. If you're not cool with it, then you know what needs to have tests added.
