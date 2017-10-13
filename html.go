@@ -239,13 +239,13 @@ func percentCovered(p *cover.Profile) float64 {
 // source code, and tokens, and writes it to the given Writer.
 func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report tarpReport) error {
 	dst := bufio.NewWriter(w)
+	var relevantFunc tarpFunc
 
 	currentLine := 1
 	for i := range src {
 		for len(boundaries) > 0 && boundaries[0].Offset == i {
 			b := boundaries[0]
 			if b.Start {
-				var relevantFunc tarpFunc
 				for _, d := range report.DeclaredDetails {
 					if strings.Contains(d.Filename, filename) {
 						if d.RBracePos.Line == currentLine {
@@ -260,7 +260,7 @@ func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Bounda
 				if b.Count > 0 {
 					n = int(math.Floor(b.Norm*9)) + 1
 				}
-				if relevantFunc.Name != "" && n > 0 && !relevantFuncCalled {
+				if relevantFunc.Name != "" && n > 0 && !relevantFuncCalled && currentLine <= relevantFunc.LBracePos.Line {
 					fmt.Fprintf(dst, `<span class="%s" title="%v">`, tarpClassName, b.Count)
 				} else {
 					fmt.Fprintf(dst, `<span class="cov%v" title="%v">`, n, b.Count)
@@ -278,7 +278,7 @@ func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Bounda
 		case '&':
 			dst.WriteString("&amp;")
 		case '\t':
-			dst.WriteString("    ")
+			dst.WriteString("        ")
 		case '\n':
 			currentLine++
 			dst.WriteByte(b)

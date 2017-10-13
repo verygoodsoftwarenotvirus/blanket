@@ -30,15 +30,11 @@ import (
 
 func buildExampleFileAbsPath(t *testing.T, filename string) string {
 	t.Helper()
-
 	abspath, err := filepath.Abs(filename)
-
-	//pwd, err := os.Getwd()
 	if err != nil {
 		log.Println("encountered error getting the current working directory")
 		t.FailNow()
 	}
-	//return strings.Join([]string{pwd, filename}, "/")
 	return abspath
 }
 
@@ -294,21 +290,21 @@ func TestHTMLOutput(t *testing.T) {
 		<pre class="file" id="file0" >package simple
 
 func a() string <span class="cov10" title="2">{
-    return "A"
+        return "A"
 }</span>
 
 func b() string <span class="tarp-uncovered" title="1">{
-    return "B"
+        return "B"
 }</span>
 
 func c() string <span class="cov10" title="2">{
-    return "C"
+        return "C"
 }</span>
 
 func wrapper() <span class="cov1" title="1">{
-    a()
-    b()
-    c()
+        a()
+        b()
+        c()
 }</span>
 </pre>
 
@@ -428,21 +424,21 @@ func wrapper() <span class="cov1" title="1">{
 		<pre class="file" id="file0" >package simple
 
 func a() string <span class="cov8" title="1">{
-    return "A"
+        return "A"
 }</span>
 
 func b() string <span class="tarp-uncovered" title="1">{
-    return "B"
+        return "B"
 }</span>
 
 func c() string <span class="cov8" title="1">{
-    return "C"
+        return "C"
 }</span>
 
 func wrapper() <span class="cov8" title="1">{
-    a()
-    b()
-    c()
+        a()
+        b()
+        c()
 }</span>
 </pre>
 
@@ -596,21 +592,21 @@ func TestHTMLGen(t *testing.T) {
 		expected := `package simple
 
 func a() string <span class="cov10" title="2">{
-    return "A"
+        return "A"
 }</span>
 
 func b() string <span class="tarp-uncovered" title="1">{
-    return "B"
+        return "B"
 }</span>
 
 func c() string <span class="cov10" title="2">{
-    return "C"
+        return "C"
 }</span>
 
 func wrapper() <span class="cov1" title="1">{
-    a()
-    b()
-    c()
+        a()
+        b()
+        c()
 }</span>
 `
 		actual := buf.String()
@@ -733,27 +729,27 @@ func wrapper() <span class="cov1" title="1">{
 		err = htmlGen(&buf, src, simpleMainPath, profiles[0].Boundaries(src), exampleReport)
 		assert.Nil(t, err)
 
-		expected := `package simple
+		expected := `package conditionals
 
 func a() string <span class="cov8" title="1">{
-    if 1 &gt; 0 &amp;&amp; 0 &lt; 1 </span><span class="cov8" title="1">{
-        return "A"
-    }</span>
-    <span class="cov0" title="0">return "A"</span>
+        if 1 &gt; 0 &amp;&amp; 0 &lt; 1 </span><span class="cov8" title="1">{
+                return "A"
+        }</span>
+        <span class="cov0" title="0">return "A"</span>
 }
 
 func b() string <span class="tarp-uncovered" title="1">{
-    return "B"
+        return "B"
 }</span>
 
 func c() string <span class="cov8" title="1">{
-    return "C"
+        return "C"
 }</span>
 
 func wrapper() <span class="cov8" title="1">{
-    a()
-    b()
-    c()
+        a()
+        b()
+        c()
 }</span>
 `
 		actual := buf.String()
@@ -761,6 +757,149 @@ func wrapper() <span class="cov8" title="1">{
 		assert.Equal(t, expected, actual, "output should match expectation")
 	}
 	t.Run("with conditionals", withConditionals)
+
+	withExecutedConditionals := func(t *testing.T) {
+		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "executed_conditionals", true))
+		exampleReport := tarpReport{
+			Called:   set.New("b", "c", "wrapper"),
+			Declared: set.New("a", "b", "c", "wrapper"),
+			DeclaredDetails: map[string]tarpFunc{
+				"a": {
+					Name:     "a",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   16,
+						Line:     3,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   46,
+						Line:     3,
+						Column:   31,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   92,
+						Line:     8,
+						Column:   1,
+					},
+				},
+				"b": {
+					Name:     "b",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   95,
+						Line:     10,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   111,
+						Line:     10,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   125,
+						Line:     12,
+						Column:   1,
+					},
+				},
+				"c": {
+					Name:     "c",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   128,
+						Line:     14,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   144,
+						Line:     14,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   158,
+						Line:     16,
+						Column:   1,
+					},
+				},
+				"wrapper": {
+					Name:     "wrapper",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   161,
+						Line:     18,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   190,
+						Line:     18,
+						Column:   30,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   216,
+						Line:     22,
+						Column:   1,
+					},
+				},
+			},
+		}
+
+		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/executed_conditionals.coverprofile")
+		profiles, err := cover.ParseProfiles(exampleProfilePath)
+		if err != nil {
+			log.Printf("error reading profile: %s\n", simpleMainPath)
+			t.FailNow()
+		}
+
+		src, err := ioutil.ReadFile(simpleMainPath)
+		if err != nil {
+			log.Printf("error reading file: %s\n", simpleMainPath)
+			t.FailNow()
+		}
+
+		var buf bytes.Buffer
+		err = htmlGen(&buf, src, simpleMainPath, profiles[0].Boundaries(src), exampleReport)
+		assert.Nil(t, err)
+
+		expected := `package executed_conditionals
+
+func a(condition bool) string <span class="tarp-uncovered" title="1">{
+        if condition </span><span class="tarp-uncovered" title="1">{
+                return "A"
+        }</span>
+        <span class="cov0" title="0">return "A"</span>
+}
+
+func b() string <span class="cov8" title="1">{
+        return "B"
+}</span>
+
+func c() string <span class="cov8" title="1">{
+        return "C"
+}</span>
+
+func wrapper(condition bool) <span class="cov8" title="1">{
+        a(condition)
+        b()
+        c()
+}</span>
+`
+		actual := buf.String()
+
+		assert.Equal(t, expected, actual, "output should match expectation")
+	}
+	t.Run("with executed conditionals", withExecutedConditionals)
 }
 
 func TestPercentCovered(t *testing.T) {

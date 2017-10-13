@@ -1,4 +1,4 @@
-package simple
+package conditionals
 
 func a() string {
 	if 1 > 0 && 0 < 1 {

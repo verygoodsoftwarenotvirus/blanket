@@ -1,11 +1,11 @@
-package conditionals
+package executed_conditionals
 
 import (
 	"testing"
 )
 
-func TestA(t *testing.T) {
-	a()
+func TestB(t *testing.T) {
+	b()
 }
 
 func TestC(t *testing.T) {
@@ -13,5 +13,5 @@ func TestC(t *testing.T) {
 }
 
 func TestWrapper(t *testing.T) {
-	wrapper()
+	wrapper(true)
 }
