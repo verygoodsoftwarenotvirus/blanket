@@ -1,4 +1,4 @@
-# tarp [![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp) [![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/verygoodsoftwarenotvirus/tarp)](https://goreportcard.com/report/github.com/verygoodsoftwarenotvirus/tarp) [![Docker Automated Build](https://img.shields.io/docker/automated/verygoodsoftwarenotvirus/tarp.svg)](https://hub.docker.com/r/verygoodsoftwarenotvirus/tarp/)
+# tarp [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/verygoodsoftwarenotvirus/tarp) [![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp) [![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/verygoodsoftwarenotvirus/tarp)](https://goreportcard.com/report/github.com/verygoodsoftwarenotvirus/tarp) [![Docker Automated Build](https://img.shields.io/docker/automated/verygoodsoftwarenotvirus/tarp.svg)](https://hub.docker.com/r/verygoodsoftwarenotvirus/tarp/)
 
 `tarp` is a tool that helps you catch functions which don't have direct unit tests in your Go packages.
 
@@ -72,7 +72,7 @@ However, note that `B` doesn't have a direct test the way that `A` and `C` do. `
 
 ```bash
 Functions without direct unit tests:
-in /Users/jeffrey/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go:
+in /Users/vgsnv/golang/src/github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go:
     B on line 7
 
 Grade: 75% (3/4 functions)
