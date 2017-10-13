@@ -1,5 +1,4 @@
-// +build !unit
-
+// tarp finds functions without direct unit tests
 package main
 
 import (
