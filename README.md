@@ -1,4 +1,10 @@
-# tarp [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/verygoodsoftwarenotvirus/tarp) [![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp) [![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master) [![Go Report Card](https://goreportcard.com/badge/github.com/verygoodsoftwarenotvirus/tarp)](https://goreportcard.com/report/github.com/verygoodsoftwarenotvirus/tarp) [![Docker Automated Build](https://img.shields.io/docker/automated/verygoodsoftwarenotvirus/tarp.svg)](https://hub.docker.com/r/verygoodsoftwarenotvirus/tarp/)
+# tarp
+
+[![GoDoc](https://godoc.org/github.com/verygoodsoftwarenotvirus/tarp?status.svg)](https://godoc.org/github.com/verygoodsoftwarenotvirus/tarp)
+[![Build Status](https://travis-ci.org/verygoodsoftwarenotvirus/tarp.svg?branch=master)](https://travis-ci.org/verygoodsoftwarenotvirus/tarp)
+[![Coverage Status](https://coveralls.io/repos/github/verygoodsoftwarenotvirus/tarp/badge.svg?branch=master)](https://coveralls.io/github/verygoodsoftwarenotvirus/tarp?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/verygoodsoftwarenotvirus/tarp)](https://goreportcard.com/report/github.com/verygoodsoftwarenotvirus/tarp)
+[![Docker Automated Build](https://img.shields.io/docker/automated/verygoodsoftwarenotvirus/tarp.svg)](https://hub.docker.com/r/verygoodsoftwarenotvirus/tarp/)
 
 `tarp` is a tool that helps you catch functions which don't have direct unit tests in your Go packages.
 
