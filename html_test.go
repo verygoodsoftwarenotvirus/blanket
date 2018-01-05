@@ -872,7 +872,7 @@ func wrapper() <span class="cov8" title="1">{
 		err = htmlGen(&buf, src, simpleMainPath, profiles[0].Boundaries(src), exampleReport)
 		assert.Nil(t, err)
 
-		expected := `package executed_conditionals
+		expected := `package executedconditionals
 
 func a(condition bool) string <span class="blanket-uncovered" title="1">{
         if condition </span><span class="blanket-uncovered" title="1">{
