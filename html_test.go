@@ -61,10 +61,10 @@ func TestFindFile(t *testing.T) {
 func TestHTMLOutput(t *testing.T) {
 	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
 	simpleCountPath := buildExampleFileAbsPath(t, "example_files/simple_count.coverprofile")
-	exampleReport := tarpReport{
+	exampleReport := blanketReport{
 		Called:   set.New("a", "c", "wrapper"),
 		Declared: set.New("a", "b", "c", "wrapper"),
-		DeclaredDetails: map[string]tarpFunc{
+		DeclaredDetails: map[string]blanketFunc{
 			"a": {
 				Name:      "a",
 				Filename:  simpleMainPath,
@@ -97,14 +97,14 @@ func TestHTMLOutput(t *testing.T) {
 	}
 
 	withFailureToParseProfile := func(t *testing.T) {
-		err := htmlOutput("", "", tarpReport{})
+		err := htmlOutput("", "", blanketReport{})
 		assert.NotNil(t, err)
 	}
 	t.Run("with failure to parse profile", withFailureToParseProfile)
 
 	withFailureToFindFile := func(t *testing.T) {
 		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/nonexistent_file.coverprofile")
-		err := htmlOutput(exampleProfilePath, "", tarpReport{})
+		err := htmlOutput(exampleProfilePath, "", blanketReport{})
 		assert.NotNil(t, err)
 	}
 	t.Run("with failure to find src file", withFailureToFindFile)
@@ -113,7 +113,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Patch(ioutil.ReadFile, func(string) ([]byte, error) { return []byte{}, errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", tarpReport{})
+		err := htmlOutput(exampleProfilePath, "", blanketReport{})
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(ioutil.ReadFile)
@@ -121,12 +121,12 @@ func TestHTMLOutput(t *testing.T) {
 	t.Run("with failure to read src file", withFailureToReadFile)
 
 	withFailureToGenerateHTML := func(t *testing.T) {
-		monkey.Patch(htmlGen, func(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report tarpReport) error {
+		monkey.Patch(htmlGen, func(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report blanketReport) error {
 			return errors.New("pineapple on pizza")
 		})
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", tarpReport{})
+		err := htmlOutput(exampleProfilePath, "", blanketReport{})
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(htmlGen)
@@ -254,7 +254,7 @@ func TestHTMLOutput(t *testing.T) {
 			.cov8 { color: rgb(44, 212, 149) }
 			.cov9 { color: rgb(32, 224, 152) }
 			.cov10 { color: rgb(20, 236, 155) }
-			.tarp-uncovered { color: rgb(252, 242, 106) }
+			.blanket-uncovered { color: rgb(252, 242, 106) }
 
 		</style>
 	</head>
@@ -263,7 +263,7 @@ func TestHTMLOutput(t *testing.T) {
 			<div id="nav">
 				<select id="files">
 
-				<option value="file0">github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go (100.0%)</option>
+				<option value="file0">github.com/verygoodsoftwarenotvirus/blanket/example_packages/simple/main.go (100.0%)</option>
 
 				</select>
 			</div>
@@ -282,7 +282,7 @@ func TestHTMLOutput(t *testing.T) {
 				<span class="cov9">*</span>
 				<span class="cov10">high coverage</span>
 
-				<span class="tarp-uncovered">indirectly covered</span>
+				<span class="blanket-uncovered">indirectly covered</span>
 			</div>
 		</div>
 		<div id="content">
@@ -293,7 +293,7 @@ func a() string <span class="cov10" title="2">{
         return "A"
 }</span>
 
-func b() string <span class="tarp-uncovered" title="1">{
+func b() string <span class="blanket-uncovered" title="1">{
         return "B"
 }</span>
 
@@ -397,7 +397,7 @@ func wrapper() <span class="cov1" title="1">{
 			.cov8 { color: rgb(44, 212, 149) }
 			.cov9 { color: rgb(32, 224, 152) }
 			.cov10 { color: rgb(20, 236, 155) }
-			.tarp-uncovered { color: rgb(252, 242, 106) }
+			.blanket-uncovered { color: rgb(252, 242, 106) }
 
 		</style>
 	</head>
@@ -406,7 +406,7 @@ func wrapper() <span class="cov1" title="1">{
 			<div id="nav">
 				<select id="files">
 
-				<option value="file0">github.com/verygoodsoftwarenotvirus/tarp/example_packages/simple/main.go (100.0%)</option>
+				<option value="file0">github.com/verygoodsoftwarenotvirus/blanket/example_packages/simple/main.go (100.0%)</option>
 
 				</select>
 			</div>
@@ -416,7 +416,7 @@ func wrapper() <span class="cov1" title="1">{
 				<span class="cov0">not covered</span>
 				<span class="cov8">covered</span>
 
-				<span class="tarp-uncovered">indirectly covered</span>
+				<span class="blanket-uncovered">indirectly covered</span>
 			</div>
 		</div>
 		<div id="content">
@@ -427,7 +427,7 @@ func a() string <span class="cov8" title="1">{
         return "A"
 }</span>
 
-func b() string <span class="tarp-uncovered" title="1">{
+func b() string <span class="blanket-uncovered" title="1">{
         return "B"
 }</span>
 
@@ -477,10 +477,10 @@ func wrapper() <span class="cov8" title="1">{
 func TestHTMLGen(t *testing.T) {
 	simple := func(t *testing.T) {
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-		exampleReport := tarpReport{
+		exampleReport := blanketReport{
 			Called:   set.New("a", "c", "wrapper"),
 			Declared: set.New("a", "b", "c", "wrapper"),
-			DeclaredDetails: map[string]tarpFunc{
+			DeclaredDetails: map[string]blanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,
@@ -595,7 +595,7 @@ func a() string <span class="cov10" title="2">{
         return "A"
 }</span>
 
-func b() string <span class="tarp-uncovered" title="1">{
+func b() string <span class="blanket-uncovered" title="1">{
         return "B"
 }</span>
 
@@ -617,10 +617,10 @@ func wrapper() <span class="cov1" title="1">{
 
 	withConditionals := func(t *testing.T) {
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "conditionals", true))
-		exampleReport := tarpReport{
+		exampleReport := blanketReport{
 			Called:   set.New("a", "c", "wrapper"),
 			Declared: set.New("a", "b", "c", "wrapper"),
-			DeclaredDetails: map[string]tarpFunc{
+			DeclaredDetails: map[string]blanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,
@@ -738,7 +738,7 @@ func a() string <span class="cov8" title="1">{
         <span class="cov0" title="0">return "A"</span>
 }
 
-func b() string <span class="tarp-uncovered" title="1">{
+func b() string <span class="blanket-uncovered" title="1">{
         return "B"
 }</span>
 
@@ -760,10 +760,10 @@ func wrapper() <span class="cov8" title="1">{
 
 	withExecutedConditionals := func(t *testing.T) {
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "executed_conditionals", true))
-		exampleReport := tarpReport{
+		exampleReport := blanketReport{
 			Called:   set.New("b", "c", "wrapper"),
 			Declared: set.New("a", "b", "c", "wrapper"),
-			DeclaredDetails: map[string]tarpFunc{
+			DeclaredDetails: map[string]blanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,
@@ -872,10 +872,10 @@ func wrapper() <span class="cov8" title="1">{
 		err = htmlGen(&buf, src, simpleMainPath, profiles[0].Boundaries(src), exampleReport)
 		assert.Nil(t, err)
 
-		expected := `package executed_conditionals
+		expected := `package executedconditionals
 
-func a(condition bool) string <span class="tarp-uncovered" title="1">{
-        if condition </span><span class="tarp-uncovered" title="1">{
+func a(condition bool) string <span class="blanket-uncovered" title="1">{
+        if condition </span><span class="blanket-uncovered" title="1">{
                 return "A"
         }</span>
         <span class="cov0" title="0">return "A"</span>
@@ -1002,7 +1002,7 @@ func TestRGB(t *testing.T) {
 }
 
 func TestCSSColors(t *testing.T) {
-	expected := template.CSS(".cov0 { color: rgb(192, 0, 0) }\n\t\t\t.cov1 { color: rgb(128, 128, 128) }\n\t\t\t.cov2 { color: rgb(116, 140, 131) }\n\t\t\t.cov3 { color: rgb(104, 152, 134) }\n\t\t\t.cov4 { color: rgb(92, 164, 137) }\n\t\t\t.cov5 { color: rgb(80, 176, 140) }\n\t\t\t.cov6 { color: rgb(68, 188, 143) }\n\t\t\t.cov7 { color: rgb(56, 200, 146) }\n\t\t\t.cov8 { color: rgb(44, 212, 149) }\n\t\t\t.cov9 { color: rgb(32, 224, 152) }\n\t\t\t.cov10 { color: rgb(20, 236, 155) }\n\t\t\t.tarp-uncovered { color: rgb(252, 242, 106) }\n")
-	actual := CSScolors()
+	expected := template.CSS(".cov0 { color: rgb(192, 0, 0) }\n\t\t\t.cov1 { color: rgb(128, 128, 128) }\n\t\t\t.cov2 { color: rgb(116, 140, 131) }\n\t\t\t.cov3 { color: rgb(104, 152, 134) }\n\t\t\t.cov4 { color: rgb(92, 164, 137) }\n\t\t\t.cov5 { color: rgb(80, 176, 140) }\n\t\t\t.cov6 { color: rgb(68, 188, 143) }\n\t\t\t.cov7 { color: rgb(56, 200, 146) }\n\t\t\t.cov8 { color: rgb(44, 212, 149) }\n\t\t\t.cov9 { color: rgb(32, 224, 152) }\n\t\t\t.cov10 { color: rgb(20, 236, 155) }\n\t\t\t.blanket-uncovered { color: rgb(252, 242, 106) }\n")
+	actual := cssColors()
 	assert.Equal(t, expected, actual, "CSSColors should return expected output")
 }

@@ -325,13 +325,13 @@ func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionRetur
 	}
 }
 
-func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]tarpFunc) {
+func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]blanketFunc) {
 	for _, d := range in.Decls {
 		if f, ok := d.(*ast.FuncDecl); ok {
 			declPos := fileset.Position(f.Type.Func)
 			functionName := parseFuncDecl(f)
 
-			tf := tarpFunc{
+			tf := blanketFunc{
 				Name:     functionName,
 				Filename: declPos.Filename,
 				DeclPos:  declPos,
@@ -372,7 +372,7 @@ func findHelperFuncs(in *ast.File, helperFunctionReturnMap map[string][]string, 
 	}
 }
 
-func analyze(analyzePackage string) tarpReport {
+func analyze(analyzePackage string) blanketReport {
 	gopath := os.Getenv("GOPATH")
 
 	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
@@ -402,7 +402,7 @@ func analyze(analyzePackage string) tarpReport {
 		log.Fatal("no go files found!")
 	}
 
-	declaredFuncInfo := map[string]tarpFunc{}
+	declaredFuncInfo := map[string]blanketFunc{}
 	calledFuncs := set.New("init")
 	helperFunctionReturnMap := map[string][]string{}
 	nameToTypeMap := map[string]string{}
@@ -435,7 +435,7 @@ func analyze(analyzePackage string) tarpReport {
 		calledFuncs.Remove(x)
 	}
 
-	tr := tarpReport{
+	tr := blanketReport{
 		DeclaredDetails: declaredFuncInfo,
 		Declared:        declaredFuncs,
 		Called:          calledFuncs,

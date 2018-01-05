@@ -1,13 +1,13 @@
 # build stage
 FROM golang:alpine AS build-stage
-WORKDIR /go/src/github.com/verygoodsoftwarenotvirus/tarp
+WORKDIR /go/src/github.com/verygoodsoftwarenotvirus/blanket
 
 ADD . .
-RUN go build -o /tarp
+RUN go build -o /blanket
 
 # final stage
 FROM alpine:latest
 
-COPY --from=build-stage /tarp /tarp
+COPY --from=build-stage /blanket /blanket
 
-ENTRYPOINT ["/tarp"]
+ENTRYPOINT ["/blanket"]

@@ -30,9 +30,9 @@ import (
 )
 
 const (
-	tarpClassName = "tarp-uncovered"
-	tarpColor     = "rgb(252, 242, 106)"
-	tmplHTML      = `
+	blanketClassName = "blanket-uncovered"
+	blanketColor     = "rgb(252, 242, 106)"
+	tmplHTML         = `
 <!DOCTYPE html>
 <html>
 	<head>
@@ -99,7 +99,7 @@ const (
 				<span class="cov9">*</span>
 				<span class="cov10">high coverage</span>
 {{end}}
-				<span class="tarp-uncovered">indirectly covered</span>
+				<span class="blanket-uncovered">indirectly covered</span>
 			</div>
 		</div>
 		<div id="content">
@@ -125,7 +125,7 @@ const (
 `
 )
 
-var htmlTemplate = template.Must(template.New("html").Funcs(template.FuncMap{"colors": CSScolors}).Parse(tmplHTML))
+var htmlTemplate = template.Must(template.New("html").Funcs(template.FuncMap{"colors": cssColors}).Parse(tmplHTML))
 
 type templateData struct {
 	Files []*templateFile
@@ -151,7 +151,7 @@ func findFile(path string) (string, error) {
 // htmlOutput reads the profile data from profile and generates an HTML
 // coverage report, writing it to outfile. If outfile is empty,
 // it writes the report to a temporary file and opens it in a web browser.
-func htmlOutput(profilePath, outfile string, report tarpReport) error {
+func htmlOutput(profilePath, outfile string, report blanketReport) error {
 	profiles, err := cover.ParseProfiles(profilePath)
 	if err != nil {
 		return err
@@ -237,9 +237,9 @@ func percentCovered(p *cover.Profile) float64 {
 
 // htmlGen generates an HTML coverage report with the provided filename,
 // source code, and tokens, and writes it to the given Writer.
-func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report tarpReport) error {
+func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report blanketReport) error {
 	dst := bufio.NewWriter(w)
-	var relevantFunc tarpFunc
+	var relevantFunc blanketFunc
 
 	currentLine := 1
 	for i := range src {
@@ -261,7 +261,7 @@ func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Bounda
 					n = int(math.Floor(b.Norm*9)) + 1
 				}
 				if relevantFunc.Name != "" && n > 0 && !relevantFuncCalled && currentLine <= relevantFunc.LBracePos.Line {
-					fmt.Fprintf(dst, `<span class="%s" title="%v">`, tarpClassName, b.Count)
+					fmt.Fprintf(dst, `<span class="%s" title="%v">`, blanketClassName, b.Count)
 				} else {
 					fmt.Fprintf(dst, `<span class="cov%v" title="%v">`, n, b.Count)
 				}
@@ -324,12 +324,12 @@ func rgb(n int) string {
 	return fmt.Sprintf("rgb(%v, %v, %v)", r, g, b)
 }
 
-// colors generates the CSS rules for coverage colors.
-func CSScolors() template.CSS {
+// cssColors generates the CSS rules for coverage colors.
+func cssColors() template.CSS {
 	var buf bytes.Buffer
 	for i := 0; i < 11; i++ {
 		fmt.Fprintf(&buf, ".cov%v { color: %v }\n\t\t\t", i, rgb(i))
 	}
-	fmt.Fprint(&buf, fmt.Sprintf(".%s { color: %s }\n", tarpClassName, tarpColor))
+	fmt.Fprint(&buf, fmt.Sprintf(".%s { color: %s }\n", blanketClassName, blanketColor))
 	return template.CSS(buf.String())
 }

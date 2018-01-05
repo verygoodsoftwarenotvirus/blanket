@@ -25,9 +25,9 @@ func buildExamplePackagePath(t *testing.T, packageName string, abs bool) string 
 	t.Helper()
 	gopath := os.Getenv("GOPATH")
 	if abs {
-		return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
+		return strings.Join([]string{gopath, "src", "github.com", "verygoodsoftwarenotvirus", "blanket", "example_packages", packageName}, "/")
 	}
-	return strings.Join([]string{"github.com", "verygoodsoftwarenotvirus", "tarp", "example_packages", packageName}, "/")
+	return strings.Join([]string{"github.com", "verygoodsoftwarenotvirus", "blanket", "example_packages", packageName}, "/")
 }
 
 ////////////////////////////////////////////////////////
@@ -50,8 +50,8 @@ func init() {
 
 func TestGenerateDiffReport(t *testing.T) {
 	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-	exampleReport := tarpReport{
-		DeclaredDetails: map[string]tarpFunc{
+	exampleReport := blanketReport{
+		DeclaredDetails: map[string]blanketFunc{
 			"A": {
 				Name:     "A",
 				Filename: simpleMainPath,
@@ -147,14 +147,14 @@ func TestGenerateDiffReport(t *testing.T) {
 
 	diff := set.StringSlice(set.Difference(exampleReport.Declared, exampleReport.Called))
 
-	expected := tarpOutput{
+	expected := blanketOutput{
 		LongestFunctionNameLength: 1,
 		DeclaredCount:             4,
 		CalledCount:               3,
 		Score:                     75,
-		Details: map[string][]tarpFunc{
+		Details: map[string][]blanketFunc{
 			simpleMainPath: {
-				tarpFunc{
+				blanketFunc{
 					Name:     "B",
 					Filename: simpleMainPath,
 					DeclPos: token.Position{
@@ -437,7 +437,7 @@ func TestFuncMain(t *testing.T) {
 	t.Run("cover fails when it cannot parse the profile", coverTestWithErrorParsingProfiles)
 
 	coverTestWithErrorGeneratingHTMLOutput := func(t *testing.T) {
-		monkey.Patch(htmlOutput, func(string, string, tarpReport) error { return errors.New("pineapple on pizza") })
+		monkey.Patch(htmlOutput, func(string, string, blanketReport) error { return errors.New("pineapple on pizza") })
 
 		var fatalCalled bool
 		defer func() {
