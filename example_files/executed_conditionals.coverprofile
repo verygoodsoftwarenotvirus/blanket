@@ -1,7 +1,7 @@
 mode: set
-github.com/verygoodsoftwarenotvirus/tarp/example_packages/executed_conditionals/main.go:3.31,4.15 1 1
-github.com/verygoodsoftwarenotvirus/tarp/example_packages/executed_conditionals/main.go:7.2,7.12 1 0
-github.com/verygoodsoftwarenotvirus/tarp/example_packages/executed_conditionals/main.go:4.15,6.3 1 1
-github.com/verygoodsoftwarenotvirus/tarp/example_packages/executed_conditionals/main.go:10.17,12.2 1 1
-github.com/verygoodsoftwarenotvirus/tarp/example_packages/executed_conditionals/main.go:14.17,16.2 1 1
-github.com/verygoodsoftwarenotvirus/tarp/example_packages/executed_conditionals/main.go:18.30,22.2 3 1
+github.com/verygoodsoftwarenotvirus/blanket/example_packages/executed_conditionals/main.go:3.31,4.15 1 1
+github.com/verygoodsoftwarenotvirus/blanket/example_packages/executed_conditionals/main.go:7.2,7.12 1 0
+github.com/verygoodsoftwarenotvirus/blanket/example_packages/executed_conditionals/main.go:4.15,6.3 1 1
+github.com/verygoodsoftwarenotvirus/blanket/example_packages/executed_conditionals/main.go:10.17,12.2 1 1
+github.com/verygoodsoftwarenotvirus/blanket/example_packages/executed_conditionals/main.go:14.17,16.2 1 1
+github.com/verygoodsoftwarenotvirus/blanket/example_packages/executed_conditionals/main.go:18.30,22.2 3 1

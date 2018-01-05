@@ -6,22 +6,22 @@ import (
 	"github.com/fatih/set"
 )
 
-type tarpOutput struct {
-	DeclaredCount             int                   `json:"declared"`
-	CalledCount               int                   `json:"called"`
-	Score                     int                   `json:"score"`
-	Details                   map[string][]tarpFunc `json:"-"`
-	LongestFunctionNameLength int                   `json:"-"`
+type blanketOutput struct {
+	DeclaredCount             int                      `json:"declared"`
+	CalledCount               int                      `json:"called"`
+	Score                     int                      `json:"score"`
+	Details                   map[string][]blanketFunc `json:"-"`
+	LongestFunctionNameLength int                      `json:"-"`
 }
 
-type tarpReport struct {
-	DeclaredDetails map[string]tarpFunc
+type blanketReport struct {
+	DeclaredDetails map[string]blanketFunc
 	Called          *set.Set
 	Declared        *set.Set
 }
 
-type tarpDetails []tarpFunc
-type tarpFunc struct {
+type blanketDetails []blanketFunc
+type blanketFunc struct {
 	Name      string
 	Filename  string
 	DeclPos   token.Position
@@ -29,11 +29,11 @@ type tarpFunc struct {
 	LBracePos token.Position
 }
 
-func (td tarpDetails) Len() int {
+func (td blanketDetails) Len() int {
 	return len(td)
 }
 
-func (td tarpDetails) Less(i, j int) bool {
+func (td blanketDetails) Less(i, j int) bool {
 	if td[i].Filename < td[j].Filename {
 		return true
 	}
@@ -43,6 +43,6 @@ func (td tarpDetails) Less(i, j int) bool {
 	return td[i].DeclPos.Line < td[j].DeclPos.Line
 }
 
-func (td tarpDetails) Swap(i, j int) {
+func (td blanketDetails) Swap(i, j int) {
 	td[i], td[j] = td[j], td[i]
 }

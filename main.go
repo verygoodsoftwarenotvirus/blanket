@@ -1,4 +1,4 @@
-// tarp finds functions without direct unit tests
+// blanket finds functions without direct unit tests
 package main
 
 import (
@@ -48,9 +48,9 @@ var (
 
 	// commands
 	rootCmd = &cobra.Command{
-		Use:   "tarp",
-		Short: "tarp is a coverage helper tool",
-		Long:  `tarp is a tool that helps you catch functions which don't have direct unit tests in your Go libraries`,
+		Use:   "blanket",
+		Short: "blanket is a coverage helper tool",
+		Long:  `blanket is a tool that helps you catch functions which don't have direct unit tests in your Go libraries`,
 	}
 
 	colors = map[string]color.Attribute{
@@ -157,9 +157,9 @@ func init() {
 	coverCmd.Flags().StringVarP(&coverprofile, "html", "c", "", "coverprofile to generate HTML for.")
 }
 
-func generateDiffReport(diff []string, declaredFuncInfo map[string]tarpFunc, declaredFuncCount int, calledFuncCount int) tarpOutput {
+func generateDiffReport(diff []string, declaredFuncInfo map[string]blanketFunc, declaredFuncCount int, calledFuncCount int) blanketOutput {
 	longestFunctionNameLength := 0
-	missingFuncs := &tarpDetails{}
+	missingFuncs := &blanketDetails{}
 	for _, s := range diff {
 		if utf8.RuneCountInString(s) > longestFunctionNameLength {
 			longestFunctionNameLength = len(s)
@@ -167,13 +167,13 @@ func generateDiffReport(diff []string, declaredFuncInfo map[string]tarpFunc, dec
 		*missingFuncs = append(*missingFuncs, declaredFuncInfo[s])
 	}
 	sort.Sort(missingFuncs)
-	byFilename := map[string][]tarpFunc{}
+	byFilename := map[string][]blanketFunc{}
 	for _, tf := range *missingFuncs {
 		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
 	}
 	score := float64(calledFuncCount) / float64(declaredFuncCount)
 
-	report := tarpOutput{
+	report := blanketOutput{
 		DeclaredCount:             declaredFuncCount,
 		CalledCount:               calledFuncCount,
 		Score:                     int(score * 100),

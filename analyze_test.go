@@ -989,7 +989,7 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expected := map[string]tarpFunc{
+		expected := map[string]blanketFunc{
 			"a": {
 				Name: "a",
 			},
@@ -1003,7 +1003,7 @@ func TestGetDeclaredNames(t *testing.T) {
 				Name: "wrapper",
 			},
 		}
-		actual := map[string]tarpFunc{}
+		actual := map[string]blanketFunc{}
 
 		getDeclaredNames(in, token.NewFileSet(), actual)
 
@@ -1018,7 +1018,7 @@ func TestGetDeclaredNames(t *testing.T) {
 			t.FailNow()
 		}
 
-		expected := map[string]tarpFunc{
+		expected := map[string]blanketFunc{
 			"example.A": {
 				Name: "example.A",
 			},
@@ -1041,7 +1041,7 @@ func TestGetDeclaredNames(t *testing.T) {
 				Name: "wrapper",
 			},
 		}
-		actual := map[string]tarpFunc{}
+		actual := map[string]blanketFunc{}
 
 		getDeclaredNames(in, token.NewFileSet(), actual)
 
@@ -1128,8 +1128,8 @@ func TestAnalyze(t *testing.T) {
 	simplePkg := func(t *testing.T) {
 		debug = true
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-		expected := tarpReport{
-			DeclaredDetails: map[string]tarpFunc{
+		expected := blanketReport{
+			DeclaredDetails: map[string]blanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,

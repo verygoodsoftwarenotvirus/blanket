@@ -7,20 +7,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTarpDetailsMethods(t *testing.T) {
-	arbitraryInstance := tarpDetails{
-		tarpFunc{
+func TestblanketDetailsMethods(t *testing.T) {
+	arbitraryInstance := blanketDetails{
+		blanketFunc{
 			Filename: "a",
 			Name:     "One",
 		},
-		tarpFunc{
+		blanketFunc{
 			Filename: "b",
 			Name:     "Two",
 			DeclPos: token.Position{
 				Line: 1,
 			},
 		},
-		tarpFunc{
+		blanketFunc{
 			Filename: "b",
 			Name:     "Three",
 			DeclPos: token.Position{
@@ -30,7 +30,7 @@ func TestTarpDetailsMethods(t *testing.T) {
 	}
 
 	testLen := func(t *testing.T) {
-		assert.Equal(t, 3, arbitraryInstance.Len(), ".Len() should return the length of tarpDetails")
+		assert.Equal(t, 3, arbitraryInstance.Len(), ".Len() should return the length of blanketDetails")
 	}
 	t.Run(".Len()", testLen)
 
@@ -43,19 +43,19 @@ func TestTarpDetailsMethods(t *testing.T) {
 	t.Run(".Less()", testLess)
 
 	testSwap := func(t *testing.T) {
-		expected := tarpDetails{
-			tarpFunc{
+		expected := blanketDetails{
+			blanketFunc{
 				Filename: "b",
 				Name:     "Two",
 				DeclPos: token.Position{
 					Line: 1,
 				},
 			},
-			tarpFunc{
+			blanketFunc{
 				Filename: "a",
 				Name:     "One",
 			},
-			tarpFunc{
+			blanketFunc{
 				Filename: "b",
 				Name:     "Three",
 				DeclPos: token.Position{
