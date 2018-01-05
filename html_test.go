@@ -1003,6 +1003,6 @@ func TestRGB(t *testing.T) {
 
 func TestCSSColors(t *testing.T) {
 	expected := template.CSS(".cov0 { color: rgb(192, 0, 0) }\n\t\t\t.cov1 { color: rgb(128, 128, 128) }\n\t\t\t.cov2 { color: rgb(116, 140, 131) }\n\t\t\t.cov3 { color: rgb(104, 152, 134) }\n\t\t\t.cov4 { color: rgb(92, 164, 137) }\n\t\t\t.cov5 { color: rgb(80, 176, 140) }\n\t\t\t.cov6 { color: rgb(68, 188, 143) }\n\t\t\t.cov7 { color: rgb(56, 200, 146) }\n\t\t\t.cov8 { color: rgb(44, 212, 149) }\n\t\t\t.cov9 { color: rgb(32, 224, 152) }\n\t\t\t.cov10 { color: rgb(20, 236, 155) }\n\t\t\t.blanket-uncovered { color: rgb(252, 242, 106) }\n")
-	actual := CSScolors()
+	actual := cssColors()
 	assert.Equal(t, expected, actual, "CSSColors should return expected output")
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestblanketDetailsMethods(t *testing.T) {
+func TestBlanketDetailsMethods(t *testing.T) {
 	arbitraryInstance := blanketDetails{
 		blanketFunc{
 			Filename: "a",

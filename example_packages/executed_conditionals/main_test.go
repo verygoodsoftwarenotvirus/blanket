@@ -1,4 +1,4 @@
-package executed_conditionals
+package executedconditionals
 
 import (
 	"testing"

@@ -125,7 +125,7 @@ const (
 `
 )
 
-var htmlTemplate = template.Must(template.New("html").Funcs(template.FuncMap{"colors": CSScolors}).Parse(tmplHTML))
+var htmlTemplate = template.Must(template.New("html").Funcs(template.FuncMap{"colors": cssColors}).Parse(tmplHTML))
 
 type templateData struct {
 	Files []*templateFile
@@ -324,8 +324,8 @@ func rgb(n int) string {
 	return fmt.Sprintf("rgb(%v, %v, %v)", r, g, b)
 }
 
-// colors generates the CSS rules for coverage colors.
-func CSScolors() template.CSS {
+// cssColors generates the CSS rules for coverage colors.
+func cssColors() template.CSS {
 	var buf bytes.Buffer
 	for i := 0; i < 11; i++ {
 		fmt.Fprintf(&buf, ".cov%v { color: %v }\n\t\t\t", i, rgb(i))

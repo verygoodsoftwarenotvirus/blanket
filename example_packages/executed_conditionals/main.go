@@ -1,4 +1,4 @@
-package executed_conditionals
+package executedconditionals
 
 func a(condition bool) string {
 	if condition {
