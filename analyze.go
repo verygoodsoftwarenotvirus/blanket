@@ -70,16 +70,17 @@ func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]
 // 		A DeclStmt node represents a declaration in a statement list.
 // DeclStmts come from function bodies, GenDecls come from package-wide const or var declarations
 func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
-	// FIXME: we make a whole mess of assumptions right here. I haven't thusfar seen any
-	// 		  evidence that these assumptions are incorrect or dangerous, but that doesn't
-	// 		  mean they don't carry the inherent risk that most assumptions do.
-	if s, ok := in.Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec); ok {
-		varName := s.Names[0].Name
-		switch t := s.Type.(type) {
-		case *ast.Ident:
-			nameToTypeMap[varName] = t.Name
-		case *ast.SelectorExpr:
-			nameToTypeMap[varName] = t.Sel.Name
+	if gd, ok := in.Decl.(*ast.GenDecl); ok {
+		if len(gd.Specs) > 0 {
+			if s, ok := gd.Specs[0].(*ast.ValueSpec); ok {
+				varName := s.Names[0].Name
+				switch t := s.Type.(type) {
+				case *ast.Ident:
+					nameToTypeMap[varName] = t.Name
+				case *ast.SelectorExpr:
+					nameToTypeMap[varName] = t.Sel.Name
+				}
+			}
 		}
 	}
 }
@@ -112,11 +113,13 @@ func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[s
 func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 	for _, spec := range in.Specs {
 		if global, ok := spec.(*ast.ValueSpec); ok {
-			varName := global.Names[0].Name
-			if global.Type != nil {
-				if t, ok := global.Type.(*ast.Ident); ok {
-					typeName := t.Name
-					nameToTypeMap[varName] = typeName
+			if len(global.Names) > 0 {
+				varName := global.Names[0].Name
+				if global.Type != nil {
+					if t, ok := global.Type.(*ast.Ident); ok {
+						typeName := t.Name
+						nameToTypeMap[varName] = typeName
+					}
 				}
 			}
 		}
@@ -130,13 +133,15 @@ func parseFuncDecl(f *ast.FuncDecl) string {
 	functionName := f.Name.Name // "Avoid Stutter" lol
 	var parentName string
 	if f.Recv != nil {
-		switch x := f.Recv.List[0].Type.(type) {
-		case *ast.StarExpr:
-			if parent, ok := x.X.(*ast.Ident); ok {
-				parentName = parent.Name
+		if len(f.Recv.List) > 0 {
+			switch x := f.Recv.List[0].Type.(type) {
+			case *ast.StarExpr:
+				if parent, ok := x.X.(*ast.Ident); ok {
+					parentName = parent.Name
+				}
+			case *ast.Ident:
+				parentName = x.Obj.Name
 			}
-		case *ast.Ident:
-			parentName = x.Obj.Name
 		}
 	}
 
