@@ -35,8 +35,12 @@ func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionRetur
 
 func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, a := range in.Args {
-		if r, ok := a.(*ast.CallExpr); ok {
-			parseCallExpr(r, nameToTypeMap, helperFunctionReturnMap, out)
+		switch at := a.(type) {
+		// case *ast.Ident:
+		case *ast.CallExpr:
+			parseCallExpr(at, nameToTypeMap, helperFunctionReturnMap, out)
+		case *ast.FuncLit:
+			parseFuncLit(at, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
 	parseExpr(in.Fun, nameToTypeMap, helperFunctionReturnMap, out)
@@ -73,12 +77,14 @@ func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
 	if gd, ok := in.Decl.(*ast.GenDecl); ok {
 		if len(gd.Specs) > 0 {
 			if s, ok := gd.Specs[0].(*ast.ValueSpec); ok {
-				varName := s.Names[0].Name
-				switch t := s.Type.(type) {
-				case *ast.Ident:
-					nameToTypeMap[varName] = t.Name
-				case *ast.SelectorExpr:
-					nameToTypeMap[varName] = t.Sel.Name
+				if len(s.Names) > 0 {
+					varName := s.Names[0].Name
+					switch t := s.Type.(type) {
+					case *ast.Ident:
+						nameToTypeMap[varName] = t.Name
+					case *ast.SelectorExpr:
+						nameToTypeMap[varName] = t.Sel.Name
+					}
 				}
 			}
 		}
@@ -176,20 +182,19 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 				parseCompositeLit(t, "", nameToTypeMap, helperFunctionReturnMap, out)
 			}
 		case *ast.CallExpr:
-			if len(in.Rhs) != len(in.Lhs) {
-				var functionName string
-				switch funcInfo := t.Fun.(type) {
-				case *ast.Ident:
-					functionName = funcInfo.Name
-				case *ast.SelectorExpr:
-					functionName = funcInfo.Sel.Name
-				}
-				if _, ok := helperFunctionReturnMap[functionName]; ok {
-					for i, thing := range leftHandSide {
-						nameToTypeMap[thing] = helperFunctionReturnMap[functionName][i]
-					}
+			var functionName string
+			switch funcInfo := t.Fun.(type) {
+			case *ast.Ident:
+				functionName = funcInfo.Name
+			case *ast.SelectorExpr:
+				functionName = funcInfo.Sel.Name
+			}
+			if _, ok := helperFunctionReturnMap[functionName]; ok {
+				for i, thing := range leftHandSide {
+					nameToTypeMap[thing] = helperFunctionReturnMap[functionName][i]
 				}
 			}
+
 			parseCallExpr(t, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
@@ -357,7 +362,7 @@ func getCalledNames(in *ast.File, nameToTypeMap map[string]string, helperFunctio
 		case *ast.GenDecl:
 			parseGenDecl(n, nameToTypeMap)
 		case *ast.FuncDecl:
-			if n.Body != nil {
+			if _, ok := helperFunctionReturnMap[n.Name.Name]; !ok && n.Body != nil {
 				for _, le := range n.Body.List {
 					parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 				}
@@ -421,12 +426,20 @@ func analyze(analyzePackage string) blanketReport {
 		}
 	}
 
+	// find all the declared names
+	for _, pkg := range astPkg {
+		for name, f := range pkg.Files {
+			if !strings.HasSuffix(name, "_test.go") {
+				getDeclaredNames(f, fileset, declaredFuncInfo)
+			}
+		}
+	}
+
+	// find all the called names
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
 			if strings.HasSuffix(name, "_test.go") {
 				getCalledNames(f, nameToTypeMap, helperFunctionReturnMap, calledFuncs)
-			} else {
-				getDeclaredNames(f, fileset, declaredFuncInfo)
 			}
 		}
 	}
