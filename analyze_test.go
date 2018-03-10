@@ -167,7 +167,33 @@ func TestParseCallExpr(t *testing.T) {
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	}
-	t.Run("with ast.SelectorExpr, but no matching entit", astSelectorExprTestWithoutMatchInMap)
+	t.Run("with ast.SelectorExpr, but no matching entity", astSelectorExprTestWithoutMatchInMap)
+
+	t.Run("with funcLit in argument list", func(_t *testing.T) {
+		_t.Parallel()
+
+		codeSample := `
+			package main
+
+			import "log"
+
+			func main(){
+				arbitraryCallExpression(func(i int) {
+					log.Println(i)
+				})
+	}
+		`
+
+		p := parseChunkOfCode(t, codeSample)
+		input := p.Decls[1].(*ast.FuncDecl).Body.List[0].(*ast.ExprStmt).X.(*ast.CallExpr)
+
+		actual := set.New()
+		expected := set.New("arbitraryCallExpression")
+
+		parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
+
+		assert.Equal(t, expected, actual, "expected function name to be added to output")
+	})
 }
 
 func TestParseUnaryExpr(t *testing.T) {

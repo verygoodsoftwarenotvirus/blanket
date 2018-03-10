@@ -33,7 +33,8 @@ Grade: {{grader .Score}} ({{.CalledCount}}/{{.DeclaredCount}} functions)
 
 var (
 	// global flags
-	debug bool
+	debug   bool
+	verbose bool
 
 	// analyze flags
 	failOnFound    bool
@@ -97,6 +98,11 @@ var (
 		Short: "Analyze a given package",
 		Long:  "Analyze takes a given package and determines which functions lack direct unit tests.",
 		Run: func(cmd *cobra.Command, args []string) {
+			// TODO: figure out why tests won't capture coverage for this
+			// if len(args) == 1 && analyzePackage == "." {
+			// 		analyzePackage = args[0]
+			// }
+
 			report := analyze(analyzePackage)
 			diff := set.StringSlice(set.Difference(report.Declared, report.Called))
 			diffReport := generateDiffReport(diff, report.DeclaredDetails, report.Declared.Size(), report.Called.Size())
@@ -145,7 +151,8 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Print select debug information")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "log select debug information")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	fileset = token.NewFileSet()
 
 	rootCmd.AddCommand(analyzeCmd)
