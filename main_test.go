@@ -236,6 +236,18 @@ func TestFuncMain(t *testing.T) {
 	}
 	t.Run("perfect", perfect)
 
+	//packageAsArg := func(t *testing.T) {
+	//	os.Args = []string{
+	//		originalArgs[0],
+	//		"analyze",
+	//		buildExamplePackagePath(t, "perfect", false),
+	//	}
+	//
+	//	main()
+	//	os.Args = originalArgs
+	//}
+	//t.Run("package as argument", packageAsArg)
+
 	nonexistentPackage := func(t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
