@@ -45,17 +45,15 @@ func buildExampleFileAbsPath(t *testing.T, filename string) string {
 ////////////////////////////////////////////////////////
 
 func TestFindFile(t *testing.T) {
-	shouldFail := func(t *testing.T) {
+	t.Run("should fail", func(_t *testing.T) {
 		_, err := findFile("test")
 		assert.NotNil(t, err)
-	}
-	t.Run("should fail", shouldFail)
+	})
 
-	shouldSucceed := func(t *testing.T) {
+	t.Run("should succeed", func(_t *testing.T) {
 		_, err := findFile("cmd/internal/objfile")
 		assert.Nil(t, err)
-	}
-	t.Run("should succeed", shouldSucceed)
+	})
 }
 
 func TestHTMLOutput(t *testing.T) {
@@ -96,18 +94,18 @@ func TestHTMLOutput(t *testing.T) {
 		},
 	}
 
-	t.Run("with failure to parse profile", func(t *testing.T) {
+	t.Run("with failure to parse profile", func(_t *testing.T) {
 		err := htmlOutput("", "", blanketReport{})
 		assert.NotNil(t, err)
 	})
 
-	t.Run("with failure to find src file", func(t *testing.T) {
+	t.Run("with failure to find src file", func(_t *testing.T) {
 		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/nonexistent_file.coverprofile")
 		err := htmlOutput(exampleProfilePath, "", blanketReport{})
 		assert.NotNil(t, err)
 	})
 
-	t.Run("with failure to read src file", func(t *testing.T) {
+	t.Run("with failure to read src file", func(_t *testing.T) {
 		monkey.Patch(ioutil.ReadFile, func(string) ([]byte, error) { return []byte{}, errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
@@ -117,7 +115,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(ioutil.ReadFile)
 	})
 
-	t.Run("with failure to generate HTML", func(t *testing.T) {
+	t.Run("with failure to generate HTML", func(_t *testing.T) {
 		monkey.Patch(htmlGen, func(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report blanketReport) error {
 			return errors.New("pineapple on pizza")
 		})
@@ -129,7 +127,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(htmlGen)
 	})
 
-	t.Run("without output file", func(t *testing.T) {
+	t.Run("without output file", func(_t *testing.T) {
 		monkey.Patch(startBrowser, func(url string, os string) bool { return true })
 
 		exampleProfilePath := simpleCountPath
@@ -140,7 +138,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(startBrowser)
 	})
 
-	t.Run("without output file and ioutil.TempDir error", func(t *testing.T) {
+	t.Run("without output file and ioutil.TempDir error", func(_t *testing.T) {
 		monkey.Patch(ioutil.TempDir, func(string, string) (string, error) { return "", errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
@@ -150,7 +148,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(ioutil.TempDir)
 	})
 
-	t.Run("without output file and os.Create error", func(t *testing.T) {
+	t.Run("without output file and os.Create error", func(_t *testing.T) {
 		monkey.Patch(os.Create, func(string) (*os.File, error) { return nil, errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
@@ -160,7 +158,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(os.Create)
 	})
 
-	t.Run("without output file and os.File close error", func(t *testing.T) {
+	t.Run("without output file and os.File close error", func(_t *testing.T) {
 		monkey.Patch(os.Create, func(string) (*os.File, error) { return nil, nil })
 
 		exampleProfilePath := simpleCountPath
@@ -170,7 +168,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(os.Create)
 	})
 
-	t.Run("with failure to start the browser", func(t *testing.T) {
+	t.Run("with failure to start the browser", func(_t *testing.T) {
 		fmtFprintfCalled := false
 		monkey.Patch(startBrowser, func(url string, os string) bool { return false })
 		monkey.Patch(fmt.Fprintf, func(w io.Writer, format string, a ...interface{}) (n int, err error) {
@@ -187,7 +185,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Unpatch(startBrowser)
 	})
 
-	t.Run("simple count", func(t *testing.T) {
+	t.Run("simple count", func(_t *testing.T) {
 		exampleProfilePath := simpleCountPath
 		tmpFile := buildExampleFileAbsPath(t, "temp.html")
 
@@ -329,7 +327,7 @@ func wrapper() <span class="cov1" title="1">{
 		}
 	})
 
-	t.Run("simple set", func(t *testing.T) {
+	t.Run("simple set", func(_t *testing.T) {
 		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/simple_set.coverprofile")
 		tmpFile := buildExampleFileAbsPath(t, "temp.html")
 
@@ -464,7 +462,7 @@ func wrapper() <span class="cov8" title="1">{
 }
 
 func TestHTMLGen(t *testing.T) {
-	t.Run("simple", func(t *testing.T) {
+	t.Run("simple", func(_t *testing.T) {
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
 		exampleReport := blanketReport{
 			Called:   set.New("a", "c", "wrapper"),
@@ -603,7 +601,7 @@ func wrapper() <span class="cov1" title="1">{
 		assert.Equal(t, expected, actual, "output should match expectation")
 	})
 
-	t.Run("with conditionals", func(t *testing.T) {
+	t.Run("with conditionals", func(_t *testing.T) {
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "conditionals", true))
 		exampleReport := blanketReport{
 			Called:   set.New("a", "c", "wrapper"),
@@ -745,7 +743,7 @@ func wrapper() <span class="cov8" title="1">{
 		assert.Equal(t, expected, actual, "output should match expectation")
 	})
 
-	t.Run("with executed conditionals", func(t *testing.T) {
+	t.Run("with executed conditionals", func(_t *testing.T) {
 		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "executed_conditionals", true))
 		exampleReport := blanketReport{
 			Called:   set.New("b", "c", "wrapper"),
@@ -889,7 +887,7 @@ func wrapper(condition bool) <span class="cov8" title="1">{
 }
 
 func TestPercentCovered(t *testing.T) {
-	t.Run("should return zero", func(t *testing.T) {
+	t.Run("should return zero", func(_t *testing.T) {
 		exampleInput := &cover.Profile{}
 
 		expected := 0.0
@@ -898,7 +896,7 @@ func TestPercentCovered(t *testing.T) {
 		assert.Equal(t, expected, actual, "percentCovered should return expected output")
 	})
 
-	t.Run("should return one hundred", func(t *testing.T) {
+	t.Run("should return one hundred", func(_t *testing.T) {
 		exampleInput := &cover.Profile{
 			Blocks: []cover.ProfileBlock{
 				{
@@ -922,7 +920,7 @@ func TestGoose(t *testing.T) {
 func TestStartBrowser(t *testing.T) {
 	testURL := "test"
 
-	t.Run("darwin", func(t *testing.T) {
+	t.Run("darwin", func(_t *testing.T) {
 		execCommandCalled := false
 		fakeCommand := exec.Command(``, ``)
 		monkey.Patch(exec.Command, func(name string, args ...string) *exec.Cmd {
@@ -936,7 +934,7 @@ func TestStartBrowser(t *testing.T) {
 		monkey.Unpatch(exec.Command)
 	})
 
-	t.Run("windows", func(t *testing.T) {
+	t.Run("windows", func(_t *testing.T) {
 		execCommandCalled := false
 		fakeCommand := exec.Command(``, ``)
 		monkey.Patch(exec.Command, func(name string, args ...string) *exec.Cmd {
@@ -951,7 +949,7 @@ func TestStartBrowser(t *testing.T) {
 		monkey.Unpatch(exec.Command)
 	})
 
-	t.Run("linux", func(t *testing.T) {
+	t.Run("linux", func(_t *testing.T) {
 		execCommandCalled := false
 		fakeCommand := exec.Command(``, ``)
 		monkey.Patch(exec.Command, func(name string, args ...string) *exec.Cmd {
@@ -967,19 +965,17 @@ func TestStartBrowser(t *testing.T) {
 }
 
 func TestRGB(t *testing.T) {
-	withZero := func(t *testing.T) {
+	t.Run("with zero", func(_t *testing.T) {
 		expected := "rgb(192, 0, 0)"
 		actual := rgb(0)
 		assert.Equal(t, expected, actual, "RGB should return expected output when passed zero as an argument")
-	}
-	t.Run("with zero", withZero)
+	})
 
-	withNoneZero := func(t *testing.T) {
+	t.Run("with > zero", func(_t *testing.T) {
 		expected := "rgb(128, 128, 128)"
 		actual := rgb(1)
 		assert.Equal(t, expected, actual, "RGB should return expected output when passed a number greater than zero as an argument")
-	}
-	t.Run("with > zero", withNoneZero)
+	})
 }
 
 func TestCSSColors(t *testing.T) {

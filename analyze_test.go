@@ -34,7 +34,7 @@ func parseChunkOfCode(t *testing.T, chunkOfCode string) *ast.File {
 ////////////////////////////////////////////////////////
 
 func TestParseExpr(t *testing.T) {
-	t.Run("ident", func(t *testing.T) {
+	t.Run("ident", func(_t *testing.T) {
 		codeSample := `
 			package main
 
@@ -54,7 +54,7 @@ func TestParseExpr(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
-	t.Run("selector", func(t *testing.T) {
+	t.Run("selector", func(_t *testing.T) {
 		codeSample := `
 			package main
 
@@ -75,7 +75,7 @@ func TestParseExpr(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
-	t.Run("function literal", func(t *testing.T) {
+	t.Run("function literal", func(_t *testing.T) {
 		codeSample := `
 			package main
 
@@ -99,7 +99,7 @@ func TestParseExpr(t *testing.T) {
 }
 
 func TestParseCallExpr(t *testing.T) {
-	t.Run("with ast.Ident", func(t *testing.T) {
+	t.Run("with ast.Ident", func(_t *testing.T) {
 		codeSample := `
 			package main
 			var function func()
@@ -119,7 +119,7 @@ func TestParseCallExpr(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
-	t.Run("with ast.SelectorExpr", func(t *testing.T) {
+	t.Run("with ast.SelectorExpr", func(_t *testing.T) {
 		codeSample := `
 			package main
 			type Struct struct{}
@@ -141,7 +141,7 @@ func TestParseCallExpr(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
-	t.Run("with ast.SelectorExpr, but no matching entity", func(t *testing.T) {
+	t.Run("with ast.SelectorExpr, but no matching entity", func(_t *testing.T) {
 		codeSample := `
 			package main
 			type Struct struct{}
@@ -230,7 +230,7 @@ func TestParseDeclStmt(t *testing.T) {
 }
 
 func TestParseExprStmt(t *testing.T) {
-	t.Run("CallExpr.Fun.(*ast.Ident)", func(t *testing.T) {
+	t.Run("CallExpr.Fun.(*ast.Ident)", func(_t *testing.T) {
 		codeSample := `
 			package main
 			var example func()
@@ -249,7 +249,7 @@ func TestParseExprStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("CallExpr.Fun.(*ast.Selector)", func(t *testing.T) {
+	t.Run("CallExpr.Fun.(*ast.Selector)", func(_t *testing.T) {
 		codeSample := `
 			package main
 			type Example struct{}
@@ -273,7 +273,7 @@ func TestParseExprStmt(t *testing.T) {
 }
 
 func TestParseCompositeLit(t *testing.T) {
-	t.Run("ident", func(t *testing.T) {
+	t.Run("ident", func(_t *testing.T) {
 		codeSample := `
 			package main
 			func main() {
@@ -294,7 +294,7 @@ func TestParseCompositeLit(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("selector", func(t *testing.T) {
+	t.Run("selector", func(_t *testing.T) {
 		codeSample := `
 			package main
 			func main() {
@@ -335,7 +335,7 @@ func TestParseGenDecl(t *testing.T) {
 }
 
 func TestParseFuncDecl(t *testing.T) {
-	t.Run("simple", func(t *testing.T) {
+	t.Run("simple", func(_t *testing.T) {
 		codeSample := `
 			package test
 			func example(){}
@@ -350,7 +350,7 @@ func TestParseFuncDecl(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("with receiver", func(t *testing.T) {
+	t.Run("with receiver", func(_t *testing.T) {
 		codeSample := `
 			package test
 			type Example struct{}
@@ -366,7 +366,7 @@ func TestParseFuncDecl(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("with ptr receiver", func(t *testing.T) {
+	t.Run("with ptr receiver", func(_t *testing.T) {
 		codeSample := `
 			package test
 			type Example struct{}
@@ -384,7 +384,7 @@ func TestParseFuncDecl(t *testing.T) {
 }
 
 func TestParseAssignStmt(t *testing.T) {
-	t.Run("CallExpr", func(t *testing.T) {
+	t.Run("CallExpr", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -407,7 +407,7 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("CallExpr with multiple returns and ast.Ident Fun value", func(t *testing.T) {
+	t.Run("CallExpr with multiple returns and ast.Ident Fun value", func(_t *testing.T) {
 		// this case handles when a helper function is declared in another file.
 		codeSample := `
 			package main
@@ -431,7 +431,7 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("Assign statement with multiple returns from some external function", func(t *testing.T) {
+	t.Run("Assign statement with multiple returns from some external function", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -451,7 +451,7 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("Assign statement with multiple returns from some internal function", func(t *testing.T) {
+	t.Run("Assign statement with multiple returns from some internal function", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -474,7 +474,7 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("UnaryExpr", func(t *testing.T) {
+	t.Run("UnaryExpr", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -496,7 +496,7 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("multiple unary expressions", func(t *testing.T) {
+	t.Run("multiple unary expressions", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -519,12 +519,12 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("FuncLit", func(t *testing.T) {
+	t.Run("FuncLit", func(_t *testing.T) {
 		codeSample := `
 		 	package main
 		 	import "testing"
 		 	func TestX(t *testing. T) {
-		 		subtest := func(t *testing.T) {}
+		 		subtest := func(_t *testing.T) {}
 		 		t.Run("subtest", subtest)
 		 	}
 		 `
@@ -540,7 +540,7 @@ func TestParseAssignStmt(t *testing.T) {
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
-	t.Run("composite literal", func(t *testing.T) {
+	t.Run("composite literal", func(_t *testing.T) {
 		codeSample := `
 		 	package main
 		 	import "testing"
@@ -588,7 +588,7 @@ func TestParseHelperSelectorExpr(t *testing.T) {
 }
 
 func TestParseHelperFunction(t *testing.T) {
-	t.Run("ident", func(t *testing.T) {
+	t.Run("ident", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -614,7 +614,7 @@ func TestParseHelperFunction(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
-	t.Run("selector", func(t *testing.T) {
+	t.Run("selector", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -640,7 +640,7 @@ func TestParseHelperFunction(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
-	t.Run("star selector", func(t *testing.T) {
+	t.Run("star selector", func(_t *testing.T) {
 		codeSample := `
 			package main
 			import "testing"
@@ -672,7 +672,7 @@ func TestParseFuncLit(t *testing.T) {
 	package main
 	import "testing"
 	func TestX(t *testing. T) {
-		subtest := func(t *testing.T) {
+		subtest := func(_t *testing.T) {
 			var err error
 			doSomeThings()
 			err = doSomeOtherThings()
@@ -961,7 +961,7 @@ func TestParseStmt(t *testing.T) {
 }
 
 func TestGetDeclaredNames(t *testing.T) {
-	t.Run("simple", func(t *testing.T) {
+	t.Run("simple", func(_t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
@@ -981,7 +981,7 @@ func TestGetDeclaredNames(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
-	t.Run("methods", func(t *testing.T) {
+	t.Run("methods", func(_t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
@@ -1006,7 +1006,7 @@ func TestGetDeclaredNames(t *testing.T) {
 }
 
 func TestGetCalledNames(t *testing.T) {
-	t.Run("simple", func(t *testing.T) {
+	t.Run("simple", func(_t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
@@ -1026,7 +1026,7 @@ func TestGetCalledNames(t *testing.T) {
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
-	t.Run("methods", func(t *testing.T) {
+	t.Run("methods", func(_t *testing.T) {
 		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)

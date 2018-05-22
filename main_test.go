@@ -187,7 +187,7 @@ func TestGenerateDiffReport(t *testing.T) {
 func TestFuncMain(t *testing.T) {
 	originalArgs := os.Args
 
-	directoryWoes := func(t *testing.T) {
+	t.Run("test", func(_t *testing.T) {
 		monkey.Patch(os.Getwd, func() (string, error) {
 			return "", errors.New("pineapple on pizza")
 		})
@@ -209,10 +209,9 @@ func TestFuncMain(t *testing.T) {
 		os.Args = originalArgs
 		assert.True(t, fatalfCalled, "main should call log.Fatalf() when it can't manage to retrieve the current directory")
 		monkey.Unpatch(os.Getwd)
-	}
-	t.Run("test", directoryWoes)
+	})
 
-	optimal := func(t *testing.T) {
+	t.Run("optimal", func(_t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
@@ -221,10 +220,9 @@ func TestFuncMain(t *testing.T) {
 
 		main()
 		os.Args = originalArgs
-	}
-	t.Run("optimal", optimal)
+	})
 
-	perfect := func(t *testing.T) {
+	t.Run("perfect", func(_t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
@@ -233,22 +231,20 @@ func TestFuncMain(t *testing.T) {
 
 		main()
 		os.Args = originalArgs
-	}
-	t.Run("perfect", perfect)
+	})
 
-	//packageAsArg := func(t *testing.T) {
-	//	os.Args = []string{
-	//		originalArgs[0],
-	//		"analyze",
-	//		buildExamplePackagePath(t, "perfect", false),
-	//	}
-	//
-	//	main()
-	//	os.Args = originalArgs
-	//}
-	//t.Run("package as argument", packageAsArg)
+	t.Run("package as argument", func(_t *testing.T) {
+		os.Args = []string{
+			originalArgs[0],
+			"analyze",
+			buildExamplePackagePath(t, "perfect", false),
+		}
 
-	nonexistentPackage := func(t *testing.T) {
+		main()
+		os.Args = originalArgs
+	})
+
+	t.Run("nonexistent package", func(_t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
@@ -267,10 +263,9 @@ func TestFuncMain(t *testing.T) {
 		main()
 		assert.True(t, fatalfCalled, "main should call log.Fatalf() when the package dir doesn't exist")
 		os.Args = originalArgs
-	}
-	t.Run("nonexistent package", nonexistentPackage)
+	})
 
-	emptyPackage := func(t *testing.T) {
+	t.Run("empty package", func(_t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
@@ -289,10 +284,9 @@ func TestFuncMain(t *testing.T) {
 		main()
 		assert.True(t, fatalfCalled, "main should call log.Fatalf() when the package dir has no go files in it")
 		os.Args = originalArgs
-	}
-	t.Run("empty package", emptyPackage)
+	})
 
-	invalidCodeTest := func(t *testing.T) {
+	t.Run("invalid code", func(_t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
@@ -339,10 +333,9 @@ func TestFuncMain(t *testing.T) {
 		main()
 		assert.True(t, fatalCalled, "main should call log.Fatal() when there is uncompilable code in the package dir")
 		os.Args = originalArgs
-	}
-	t.Run("invalid code", invalidCodeTest)
+	})
 
-	invalidArguments := func(t *testing.T) {
+	t.Run("invalid arguments", func(_t *testing.T) {
 		originalArgs := os.Args
 
 		var fatalCalled bool
@@ -362,10 +355,9 @@ func TestFuncMain(t *testing.T) {
 		main()
 		os.Args = originalArgs
 		assert.True(t, fatalCalled, "main should call log.Fatal when arguments are completely invalid")
-	}
-	t.Run("invalid arguments", invalidArguments)
+	})
 
-	failsWhenInstructed := func(t *testing.T) {
+	t.Run("fails with --fail-on-found", func(_t *testing.T) {
 		os.Args = []string{
 			originalArgs[0],
 			"analyze",
@@ -383,10 +375,9 @@ func TestFuncMain(t *testing.T) {
 		assert.True(t, exitCalled, "main should call log.Fatal() when --fail-on-found is passed in and extras are found")
 		os.Args = originalArgs
 		monkey.Unpatch(os.Exit)
-	}
-	t.Run("fails with --fail-on-found", failsWhenInstructed)
+	})
 
-	padTest := func(t *testing.T) {
+	t.Run("pad test", func(_t *testing.T) {
 		failOnFound = false
 		os.Args = []string{
 			originalArgs[0],
@@ -396,10 +387,9 @@ func TestFuncMain(t *testing.T) {
 
 		main()
 		os.Args = originalArgs
-	}
-	t.Run("pad test", padTest)
+	})
 
-	jsonTest := func(t *testing.T) {
+	t.Run("JSON test", func(_t *testing.T) {
 		failOnFound = false
 		os.Args = []string{
 			originalArgs[0],
@@ -410,10 +400,9 @@ func TestFuncMain(t *testing.T) {
 
 		main()
 		os.Args = originalArgs
-	}
-	t.Run("JSON test", jsonTest)
+	})
 
-	coverTest := func(t *testing.T) {
+	t.Run("basic cover test", func(_t *testing.T) {
 		monkey.Patch(startBrowser, func(url, os string) bool { return true })
 		os.Args = []string{
 			originalArgs[0],
@@ -424,10 +413,9 @@ func TestFuncMain(t *testing.T) {
 		main()
 		os.Args = originalArgs
 		monkey.Unpatch(startBrowser)
-	}
-	t.Run("basic cover test", coverTest)
+	})
 
-	coverTestWithErrorParsingProfiles := func(t *testing.T) {
+	t.Run("cover fails when it cannot parse the profile", func(_t *testing.T) {
 		var fatalCalled bool
 		defer func() {
 			// recovered from our monkey patched log.Fatal
@@ -445,10 +433,9 @@ func TestFuncMain(t *testing.T) {
 		main()
 		assert.True(t, fatalCalled)
 		os.Args = originalArgs
-	}
-	t.Run("cover fails when it cannot parse the profile", coverTestWithErrorParsingProfiles)
+	})
 
-	coverTestWithErrorGeneratingHTMLOutput := func(t *testing.T) {
+	t.Run("cover fails when it cannot generate HTML output", func(_t *testing.T) {
 		monkey.Patch(htmlOutput, func(string, string, blanketReport) error { return errors.New("pineapple on pizza") })
 
 		var fatalCalled bool
@@ -469,6 +456,5 @@ func TestFuncMain(t *testing.T) {
 		assert.True(t, fatalCalled)
 		os.Args = originalArgs
 		monkey.Unpatch(htmlOutput)
-	}
-	t.Run("cover fails when it cannot generate HTML output", coverTestWithErrorGeneratingHTMLOutput)
+	})
 }
