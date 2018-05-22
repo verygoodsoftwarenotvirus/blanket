@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/token"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/fatih/set"
-	"go/token"
 )
 
 func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {

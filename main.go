@@ -21,6 +21,8 @@ import (
 	"strings"
 )
 
+var Farts = "butts"
+
 const (
 	differenceReportTmpl = `{{$len := .LongestFunctionNameLength}}Functions without direct unit tests:{{range $filename, $missing := .Details}}
 in {{colorizer $filename "white" true}}:{{range $missing}}
