@@ -1,4 +1,4 @@
-package main
+package analysis
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"log"
 	"testing"
+
+	"github.com/verygoodsoftwarenotvirus/blanket/lib/util"
 
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +36,10 @@ func parseChunkOfCode(t *testing.T, chunkOfCode string) *ast.File {
 ////////////////////////////////////////////////////////
 
 func TestParseExpr(t *testing.T) {
+
 	t.Run("ident", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 
@@ -49,12 +54,14 @@ func TestParseExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New("functionCall")
 
-		parseExpr(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseExpr(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
 	t.Run("selector", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 
@@ -70,12 +77,14 @@ func TestParseExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New("Example.methodCall")
 
-		parseExpr(input, nameToTypeMap, map[string][]string{}, actual)
+		analyzer.parseExpr(input, nameToTypeMap, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
 	t.Run("function literal", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 
@@ -92,7 +101,7 @@ func TestParseExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New("functionCall")
 
-		parseExpr(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseExpr(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
@@ -100,6 +109,8 @@ func TestParseExpr(t *testing.T) {
 
 func TestParseCallExpr(t *testing.T) {
 	t.Run("with ast.Ident", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			var function func()
@@ -114,12 +125,14 @@ func TestParseCallExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New("function")
 
-		parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
 	t.Run("with ast.SelectorExpr", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			type Struct struct{}
@@ -136,12 +149,14 @@ func TestParseCallExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New("Struct.method")
 
-		parseCallExpr(input, map[string]string{"s": "Struct"}, map[string][]string{}, actual)
+		analyzer.parseCallExpr(input, map[string]string{"s": "Struct"}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
 	t.Run("with ast.SelectorExpr, but no matching entity", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			type Struct struct{}
@@ -158,12 +173,14 @@ func TestParseCallExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New()
 
-		parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 
 	t.Run("with funcLit in argument list", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		_t.Parallel()
 
 		codeSample := `
@@ -184,13 +201,15 @@ func TestParseCallExpr(t *testing.T) {
 		actual := set.New()
 		expected := set.New("arbitraryCallExpression")
 
-		parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseCallExpr(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected function name to be added to output")
 	})
 }
 
 func TestParseUnaryExpr(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 			package main
 			type Struct struct{}
@@ -205,12 +224,14 @@ func TestParseUnaryExpr(t *testing.T) {
 	actual := map[string]string{}
 	expected := map[string]string{"s": "Struct"}
 
-	parseUnaryExpr(input, "s", actual, map[string][]string{}, set.New())
+	analyzer.parseUnaryExpr(input, "s", actual, map[string][]string{}, set.New())
 
 	assert.Equal(t, expected, actual, "actual output does not match expected output")
 }
 
 func TestParseDeclStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 		package main
 		func main(){
@@ -224,13 +245,15 @@ func TestParseDeclStmt(t *testing.T) {
 	expected := map[string]string{"test": "bool"}
 	actual := map[string]string{}
 
-	parseDeclStmt(input, actual)
+	analyzer.parseDeclStmt(input, actual)
 
 	assert.Equal(t, expected, actual, "actual output does not match expected output")
 }
 
 func TestParseExprStmt(t *testing.T) {
 	t.Run("CallExpr.Fun.(*ast.Ident)", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			var example func()
@@ -244,12 +267,14 @@ func TestParseExprStmt(t *testing.T) {
 		expected := set.New("example")
 		actual := set.New()
 
-		parseExprStmt(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseExprStmt(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("CallExpr.Fun.(*ast.Selector)", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			type Example struct{}
@@ -266,7 +291,7 @@ func TestParseExprStmt(t *testing.T) {
 		expected := set.New("Example.method")
 		actual := set.New()
 
-		parseExprStmt(input, map[string]string{"e": "Example"}, map[string][]string{}, actual)
+		analyzer.parseExprStmt(input, map[string]string{"e": "Example"}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
@@ -274,6 +299,8 @@ func TestParseExprStmt(t *testing.T) {
 
 func TestParseCompositeLit(t *testing.T) {
 	t.Run("ident", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			func main() {
@@ -289,12 +316,14 @@ func TestParseCompositeLit(t *testing.T) {
 		expected := set.New("methodCallAsArg")
 		actual := set.New()
 
-		parseCompositeLit(input, "e", map[string]string{"e": "Example"}, map[string][]string{}, actual)
+		analyzer.parseCompositeLit(input, "e", map[string]string{"e": "Example"}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("selector", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			func main() {
@@ -310,13 +339,15 @@ func TestParseCompositeLit(t *testing.T) {
 		expected := set.New("Example.methodCallAsArg")
 		actual := set.New()
 
-		parseCompositeLit(input, "e", map[string]string{"e": "Example"}, map[string][]string{}, actual)
+		analyzer.parseCompositeLit(input, "e", map[string]string{"e": "Example"}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 }
 
 func TestParseGenDecl(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 		package main
 		var thing string
@@ -329,13 +360,15 @@ func TestParseGenDecl(t *testing.T) {
 	actual := map[string]string{}
 	expected := map[string]string{"thing": "string"}
 
-	parseGenDecl(input, actual)
+	analyzer.parseGenDecl(input, actual)
 
 	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseFuncDecl(t *testing.T) {
 	t.Run("simple", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package test
 			func example(){}
@@ -345,12 +378,14 @@ func TestParseFuncDecl(t *testing.T) {
 		input := p.Decls[0].(*ast.FuncDecl)
 
 		expected := "example"
-		actual := parseFuncDecl(input)
+		actual := analyzer.parseFuncDecl(input)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("with receiver", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package test
 			type Example struct{}
@@ -361,12 +396,14 @@ func TestParseFuncDecl(t *testing.T) {
 		input := p.Decls[1].(*ast.FuncDecl)
 
 		expected := "Example.method"
-		actual := parseFuncDecl(input)
+		actual := analyzer.parseFuncDecl(input)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("with ptr receiver", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package test
 			type Example struct{}
@@ -377,7 +414,7 @@ func TestParseFuncDecl(t *testing.T) {
 		input := p.Decls[1].(*ast.FuncDecl)
 
 		expected := "Example.method"
-		actual := parseFuncDecl(input)
+		actual := analyzer.parseFuncDecl(input)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
@@ -385,6 +422,8 @@ func TestParseFuncDecl(t *testing.T) {
 
 func TestParseAssignStmt(t *testing.T) {
 	t.Run("CallExpr", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -402,12 +441,14 @@ func TestParseAssignStmt(t *testing.T) {
 		actual := set.New()
 		expected := set.New("example")
 
-		parseAssignStmt(input, map[string]string{}, map[string][]string{}, actual)
+		analyzer.parseAssignStmt(input, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("CallExpr with multiple returns and ast.Ident Fun value", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		// this case handles when a helper function is declared in another file.
 		codeSample := `
 			package main
@@ -426,12 +467,14 @@ func TestParseAssignStmt(t *testing.T) {
 			"y": "Y",
 		}
 
-		parseAssignStmt(input, actual, map[string][]string{"example": {"X", "Y"}}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{"example": {"X", "Y"}}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("Assign statement with multiple returns from some external function", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -446,12 +489,14 @@ func TestParseAssignStmt(t *testing.T) {
 		actual := map[string]string{}
 		expected := map[string]string{}
 
-		parseAssignStmt(input, actual, map[string][]string{}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("Assign statement with multiple returns from some internal function", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -469,12 +514,14 @@ func TestParseAssignStmt(t *testing.T) {
 			"err": "error",
 		}
 
-		parseAssignStmt(input, actual, map[string][]string{"someHelperFunctionForTestsOnly": {"http.Request", "error"}}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{"someHelperFunctionForTestsOnly": {"http.Request", "error"}}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("UnaryExpr", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -491,12 +538,14 @@ func TestParseAssignStmt(t *testing.T) {
 			"test": "SomeStruct",
 		}
 
-		parseAssignStmt(input, actual, map[string][]string{}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("multiple unary expressions", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -514,17 +563,21 @@ func TestParseAssignStmt(t *testing.T) {
 			"other": "SomeOtherStruct",
 		}
 
-		parseAssignStmt(input, actual, map[string][]string{}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("FuncLit", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 		 	package main
 		 	import "testing"
 		 	func TestX(t *testing. T) {
-		 		subtest := func(_t *testing.T) {}
+		 		subtest := func(_t *testing.T) {
+	analyzer := NewAnalyzer()
+}
 		 		t.Run("subtest", subtest)
 		 	}
 		 `
@@ -535,12 +588,14 @@ func TestParseAssignStmt(t *testing.T) {
 		actual := map[string]string{}
 		expected := map[string]string{}
 
-		parseAssignStmt(input, actual, map[string][]string{}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 
 	t.Run("composite literal", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 		 	package main
 		 	import "testing"
@@ -557,13 +612,15 @@ func TestParseAssignStmt(t *testing.T) {
 		actual := map[string]string{}
 		expected := map[string]string{}
 
-		parseAssignStmt(input, actual, map[string][]string{}, set.New())
+		analyzer.parseAssignStmt(input, actual, map[string][]string{}, set.New())
 
 		assert.Equal(t, expected, actual, "actual output does not match expected output")
 	})
 }
 
 func TestParseHelperSelectorExpr(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 		package main
 		import "testing"
@@ -582,13 +639,15 @@ func TestParseHelperSelectorExpr(t *testing.T) {
 		name: {"ast.SelectorExpr"},
 	}
 
-	parseHelperSelectorExpr(input, name, actual)
+	analyzer.parseHelperSelectorExpr(input, name, actual)
 
 	assert.Equal(t, expected, actual, "expected output did not match actual output")
 }
 
 func TestParseHelperFunction(t *testing.T) {
 	t.Run("ident", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -609,12 +668,14 @@ func TestParseHelperFunction(t *testing.T) {
 			},
 		}
 
-		parseHelperFunction(input, actual, set.New())
+		analyzer.parseHelperFunction(input, actual, set.New())
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
 	t.Run("selector", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -635,12 +696,14 @@ func TestParseHelperFunction(t *testing.T) {
 			},
 		}
 
-		parseHelperFunction(input, actual, set.New())
+		analyzer.parseHelperFunction(input, actual, set.New())
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
 	t.Run("star selector", func(_t *testing.T) {
+		analyzer := NewAnalyzer()
+
 		codeSample := `
 			package main
 			import "testing"
@@ -661,13 +724,15 @@ func TestParseHelperFunction(t *testing.T) {
 			},
 		}
 
-		parseHelperFunction(input, actual, set.New())
+		analyzer.parseHelperFunction(input, actual, set.New())
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 }
 
 func TestParseFuncLit(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 	package main
 	import "testing"
@@ -687,12 +752,14 @@ func TestParseFuncLit(t *testing.T) {
 	expected := set.New("doSomeThings", "doSomeOtherThings")
 	actual := set.New()
 
-	parseFuncLit(input, map[string]string{}, map[string][]string{}, actual)
+	analyzer.parseFuncLit(input, map[string]string{}, map[string][]string{}, actual)
 
 	assert.Equal(t, expected, actual, "actual output does not match expected output")
 }
 
 func TestParseReturnStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 			package main
 			func main(){
@@ -706,12 +773,14 @@ func TestParseReturnStmt(t *testing.T) {
 	actual := set.New()
 	expected := set.New("functionCall")
 
-	parseReturnStmt(input, map[string]string{}, map[string][]string{}, actual)
+	analyzer.parseReturnStmt(input, map[string]string{}, map[string][]string{}, actual)
 
 	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseSelectStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 			package main
 			func main(){
@@ -736,12 +805,14 @@ func TestParseSelectStmt(t *testing.T) {
 	actual := set.New()
 	expected := set.New("functionCall")
 
-	parseSelectStmt(input, map[string]string{}, map[string][]string{}, actual)
+	analyzer.parseSelectStmt(input, map[string]string{}, map[string][]string{}, actual)
 
 	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseSendStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 			package main
 			func main(){
@@ -765,13 +836,15 @@ func TestParseSendStmt(t *testing.T) {
 
 	for _, x := range input {
 		in := x.(*ast.SendStmt)
-		parseSendStmt(in, map[string]string{"x": "Example"}, map[string][]string{}, actual)
+		analyzer.parseSendStmt(in, map[string]string{"x": "Example"}, map[string][]string{}, actual)
 	}
 
 	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseSwitchStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 	package main
 	func main(){
@@ -788,12 +861,14 @@ func TestParseSwitchStmt(t *testing.T) {
 	actual := set.New()
 	expected := set.New("functionCall")
 
-	parseSwitchStmt(input, map[string]string{}, map[string][]string{}, actual)
+	analyzer.parseSwitchStmt(input, map[string]string{}, map[string][]string{}, actual)
 
 	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseTypeSwitchStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
  			package main
  			func main(){
@@ -812,12 +887,14 @@ func TestParseTypeSwitchStmt(t *testing.T) {
 	actual := set.New()
 	expected := set.New("functionCall")
 
-	parseTypeSwitchStmt(input, map[string]string{}, map[string][]string{}, actual)
+	analyzer.parseTypeSwitchStmt(input, map[string]string{}, map[string][]string{}, actual)
 
 	assert.Equal(t, expected, actual, "expected function name to be added to output")
 }
 
 func TestParseStmt(t *testing.T) {
+	analyzer := NewAnalyzer()
+
 	codeSample := `
 		package main
 
@@ -952,7 +1029,7 @@ func TestParseStmt(t *testing.T) {
 
 	p := parseChunkOfCode(t, codeSample)
 	for _, input := range p.Decls[1].(*ast.FuncDecl).Body.List {
-		parseStmt(input, map[string]string{"x": "Example"}, map[string][]string{}, actual)
+		analyzer.parseStmt(input, map[string]string{"x": "Example"}, map[string][]string{}, actual)
 	}
 
 	diff := set.StringSlice(set.Difference(expected, actual))
@@ -962,33 +1039,37 @@ func TestParseStmt(t *testing.T) {
 
 func TestGetDeclaredNames(t *testing.T) {
 	t.Run("simple", func(_t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main.go", nil, parser.AllErrors)
+		analyzer := NewAnalyzer()
+
+		in, err := parser.ParseFile(token.NewFileSet(), "../example_packages/simple/main.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
 			t.FailNow()
 		}
 
-		expected := map[string]blanketFunc{
+		expected := map[string]BlanketFunc{
 			"a":       {Name: "a"},
 			"b":       {Name: "b"},
 			"c":       {Name: "c"},
 			"wrapper": {Name: "wrapper"},
 		}
-		actual := map[string]blanketFunc{}
+		actual := map[string]BlanketFunc{}
 
-		getDeclaredNames(in, token.NewFileSet(), actual)
+		analyzer.getDeclaredNames(in, token.NewFileSet(), actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
 	t.Run("methods", func(_t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main.go", nil, parser.AllErrors)
+		analyzer := NewAnalyzer()
+
+		in, err := parser.ParseFile(token.NewFileSet(), "../example_packages/methods/main.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
 			t.FailNow()
 		}
 
-		expected := map[string]blanketFunc{
+		expected := map[string]BlanketFunc{
 			"example.A": {Name: "example.A"},
 			"example.B": {Name: "example.B"},
 			"example.C": {Name: "example.C"},
@@ -997,9 +1078,9 @@ func TestGetDeclaredNames(t *testing.T) {
 			"example.F": {Name: "example.F"},
 			"wrapper":   {Name: "wrapper"},
 		}
-		actual := map[string]blanketFunc{}
+		actual := map[string]BlanketFunc{}
 
-		getDeclaredNames(in, token.NewFileSet(), actual)
+		analyzer.getDeclaredNames(in, token.NewFileSet(), actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
@@ -1007,7 +1088,9 @@ func TestGetDeclaredNames(t *testing.T) {
 
 func TestGetCalledNames(t *testing.T) {
 	t.Run("simple", func(_t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/simple/main_test.go", nil, parser.AllErrors)
+		analyzer := NewAnalyzer()
+
+		in, err := parser.ParseFile(token.NewFileSet(), "../example_packages/simple/main_test.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
 			t.FailNow()
@@ -1021,13 +1104,15 @@ func TestGetCalledNames(t *testing.T) {
 
 		actual := set.New()
 
-		getCalledNames(in, map[string]string{}, map[string][]string{}, actual)
+		analyzer.getCalledNames(in, map[string]string{}, map[string][]string{}, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 
 	t.Run("methods", func(_t *testing.T) {
-		in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
+		analyzer := NewAnalyzer()
+
+		in, err := parser.ParseFile(token.NewFileSet(), "../example_packages/methods/main_test.go", nil, parser.AllErrors)
 		if err != nil {
 			t.Logf("failing because ParseFile returned error: %v", err)
 			t.FailNow()
@@ -1049,14 +1134,16 @@ func TestGetCalledNames(t *testing.T) {
 				"error",
 			},
 		}
-		getCalledNames(in, map[string]string{}, helperFunctionMap, actual)
+		analyzer.getCalledNames(in, map[string]string{}, helperFunctionMap, actual)
 
 		assert.Equal(t, expected, actual, "expected output did not match actual output")
 	})
 }
 
 func TestFindHelperFuncs(t *testing.T) {
-	in, err := parser.ParseFile(token.NewFileSet(), "example_packages/methods/main_test.go", nil, parser.AllErrors)
+	analyzer := NewAnalyzer()
+
+	in, err := parser.ParseFile(token.NewFileSet(), "../example_packages/methods/main_test.go", nil, parser.AllErrors)
 	if err != nil {
 		t.Logf("failing because ParseFile returned error: %v", err)
 		t.FailNow()
@@ -1069,16 +1156,18 @@ func TestFindHelperFuncs(t *testing.T) {
 		},
 	}
 	actual := map[string][]string{}
-	findHelperFuncs(in, actual, set.New())
+	analyzer.findHelperFuncs(in, actual, set.New())
 
 	assert.Equal(t, expected, actual, "expected output did not match actual output")
 }
 
 func TestAnalyze(t *testing.T) {
-	debug = true
-	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-	expected := blanketReport{
-		DeclaredDetails: map[string]blanketFunc{
+	analyzer := NewAnalyzer()
+	analyzer.debug = true
+
+	simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "simple", true))
+	expected := &BlanketReport{
+		DeclaredDetails: map[string]BlanketFunc{
 			"a": {
 				Name:     "a",
 				Filename: simpleMainPath,
@@ -1171,9 +1260,145 @@ func TestAnalyze(t *testing.T) {
 		Called:   set.New("a", "c", "wrapper"),
 		Declared: set.New("a", "b", "c", "wrapper"),
 	}
-	examplePath := buildExamplePackagePath(t, "simple", false)
-	actual := analyze(examplePath)
+	examplePath := util.BuildExamplePackagePath(t, "simple", false)
+	actual, err := analyzer.Analyze(examplePath)
 
+	assert.NoError(t, err, "Analyze produced an unexpected error")
 	assert.Equal(t, expected, actual, "expected output did not match actual output")
+}
 
+func TestGenerateDiffReport(t *testing.T) {
+	analyzer := NewAnalyzer()
+	simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "simple", true))
+	exampleReport := &BlanketReport{
+		DeclaredDetails: map[string]BlanketFunc{
+			"A": {
+				Name:     "A",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   16,
+					Line:     3,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   32,
+					Line:     3,
+					Column:   17,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   46,
+					Line:     5,
+					Column:   1,
+				},
+			},
+			"B": {
+				Name:     "B",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   49,
+					Line:     7,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   65,
+					Line:     7,
+					Column:   17,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   79,
+					Line:     9,
+					Column:   1,
+				},
+			},
+			"C": {
+				Name:     "C",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   82,
+					Line:     11,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   98,
+					Line:     11,
+					Column:   17,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   112,
+					Line:     13,
+					Column:   1,
+				},
+			},
+			"wrapper": {
+				Name:     "wrapper",
+				Filename: simpleMainPath,
+				DeclPos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   115,
+					Line:     15,
+					Column:   1,
+				},
+				RBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   130,
+					Line:     15,
+					Column:   16,
+				},
+				LBracePos: token.Position{
+					Filename: simpleMainPath,
+					Offset:   147,
+					Line:     19,
+					Column:   1,
+				},
+			},
+		},
+		Called:   set.New("A", "C", "wrapper"),
+		Declared: set.New("A", "B", "C", "wrapper"),
+	}
+
+	expected := &blanketOutput{
+		LongestFunctionNameLength: 1,
+		DeclaredCount:             4,
+		CalledCount:               3,
+		Score:                     75,
+		Details: map[string][]BlanketFunc{
+			simpleMainPath: {
+				BlanketFunc{
+					Name:     "B",
+					Filename: simpleMainPath,
+					DeclPos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   49,
+						Line:     7,
+						Column:   1,
+					},
+					RBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   65,
+						Line:     7,
+						Column:   17,
+					},
+					LBracePos: token.Position{
+						Filename: simpleMainPath,
+						Offset:   79,
+						Line:     9,
+						Column:   1,
+					},
+				},
+			},
+		},
+	}
+	analyzer.latestReport = exampleReport
+	actual := analyzer.GenerateDiffReport()
+
+	assert.Equal(t, expected, actual, "expected and actual diff reports should match.")
 }

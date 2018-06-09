@@ -9,7 +9,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package html
 
 import (
 	"bufio"
@@ -25,6 +25,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/verygoodsoftwarenotvirus/blanket/analysis"
 
 	"golang.org/x/tools/cover"
 )
@@ -148,10 +150,10 @@ func findFile(path string) (string, error) {
 	return filepath.Join(pkg.Dir, file), nil
 }
 
-// htmlOutput reads the profile data from profile and generates an HTML
+// Output reads the profile data from profile and generates an HTML
 // coverage report, writing it to outfile. If outfile is empty,
 // it writes the report to a temporary file and opens it in a web browser.
-func htmlOutput(profilePath, outfile string, report blanketReport) error {
+func Output(profilePath, outfile string, report *analysis.BlanketReport) error {
 	profiles, err := cover.ParseProfiles(profilePath)
 	if err != nil {
 		return err
@@ -210,7 +212,7 @@ func htmlOutput(profilePath, outfile string, report blanketReport) error {
 	}
 
 	if outfile == "" {
-		if !startBrowser(fmt.Sprintf("file://%s", out.Name()), goose()) {
+		if !StartBrowser(fmt.Sprintf("file://%s", out.Name()), goose()) {
 			fmt.Fprintf(os.Stderr, "HTML output written to %s\n", out.Name())
 		}
 	}
@@ -237,9 +239,9 @@ func percentCovered(p *cover.Profile) float64 {
 
 // htmlGen generates an HTML coverage report with the provided filename,
 // source code, and tokens, and writes it to the given Writer.
-func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report blanketReport) error {
+func htmlGen(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report *analysis.BlanketReport) error {
 	dst := bufio.NewWriter(w)
-	var relevantFunc blanketFunc
+	var relevantFunc analysis.BlanketFunc
 
 	currentLine := 1
 	for i := range src {
@@ -294,9 +296,9 @@ func goose() string {
 	return runtime.GOOS
 }
 
-// startBrowser tries to open the URL in a browser
+// StartBrowser tries to open the URL in a browser
 // and reports whether it succeeds.
-func startBrowser(url string, os string) bool {
+func StartBrowser(url string, os string) bool {
 	// try to start the browser
 	var args []string
 	switch os {

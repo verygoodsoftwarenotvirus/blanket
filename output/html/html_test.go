@@ -1,4 +1,4 @@
-package main
+package html
 
 import (
 	"bytes"
@@ -15,11 +15,13 @@ import (
 	"runtime"
 	"testing"
 
-	"golang.org/x/tools/cover"
+	"github.com/verygoodsoftwarenotvirus/blanket/analysis"
+	"github.com/verygoodsoftwarenotvirus/blanket/lib/util"
 
 	"github.com/bouk/monkey"
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/tools/cover"
 )
 
 ////////////////////////////////////////////////////////
@@ -57,12 +59,12 @@ func TestFindFile(t *testing.T) {
 }
 
 func TestHTMLOutput(t *testing.T) {
-	simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
+	simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "simple", true))
 	simpleCountPath := buildExampleFileAbsPath(t, "example_files/simple_count.coverprofile")
-	exampleReport := blanketReport{
+	exampleReport := &analysis.BlanketReport{
 		Called:   set.New("a", "c", "wrapper"),
 		Declared: set.New("a", "b", "c", "wrapper"),
-		DeclaredDetails: map[string]blanketFunc{
+		DeclaredDetails: map[string]analysis.BlanketFunc{
 			"a": {
 				Name:      "a",
 				Filename:  simpleMainPath,
@@ -95,13 +97,13 @@ func TestHTMLOutput(t *testing.T) {
 	}
 
 	t.Run("with failure to parse profile", func(_t *testing.T) {
-		err := htmlOutput("", "", blanketReport{})
+		err := Output("", "", &analysis.BlanketReport{})
 		assert.NotNil(t, err)
 	})
 
 	t.Run("with failure to find src file", func(_t *testing.T) {
 		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/nonexistent_file.coverprofile")
-		err := htmlOutput(exampleProfilePath, "", blanketReport{})
+		err := Output(exampleProfilePath, "", &analysis.BlanketReport{})
 		assert.NotNil(t, err)
 	})
 
@@ -109,40 +111,40 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Patch(ioutil.ReadFile, func(string) ([]byte, error) { return []byte{}, errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", blanketReport{})
+		err := Output(exampleProfilePath, "", &analysis.BlanketReport{})
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(ioutil.ReadFile)
 	})
 
 	t.Run("with failure to generate HTML", func(_t *testing.T) {
-		monkey.Patch(htmlGen, func(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report blanketReport) error {
+		monkey.Patch(htmlGen, func(w io.Writer, src []byte, filename string, boundaries []cover.Boundary, report *analysis.BlanketReport) error {
 			return errors.New("pineapple on pizza")
 		})
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", blanketReport{})
+		err := Output(exampleProfilePath, "", &analysis.BlanketReport{})
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(htmlGen)
 	})
 
 	t.Run("without output file", func(_t *testing.T) {
-		monkey.Patch(startBrowser, func(url string, os string) bool { return true })
+		monkey.Patch(StartBrowser, func(url string, os string) bool { return true })
 
 		exampleProfilePath := simpleCountPath
 
-		err := htmlOutput(exampleProfilePath, "", exampleReport)
+		err := Output(exampleProfilePath, "", exampleReport)
 		assert.Nil(t, err)
 
-		monkey.Unpatch(startBrowser)
+		monkey.Unpatch(StartBrowser)
 	})
 
 	t.Run("without output file and ioutil.TempDir error", func(_t *testing.T) {
 		monkey.Patch(ioutil.TempDir, func(string, string) (string, error) { return "", errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", exampleReport)
+		err := Output(exampleProfilePath, "", exampleReport)
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(ioutil.TempDir)
@@ -152,7 +154,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Patch(os.Create, func(string) (*os.File, error) { return nil, errors.New("pineapple on pizza") })
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", exampleReport)
+		err := Output(exampleProfilePath, "", exampleReport)
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(os.Create)
@@ -162,7 +164,7 @@ func TestHTMLOutput(t *testing.T) {
 		monkey.Patch(os.Create, func(string) (*os.File, error) { return nil, nil })
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", exampleReport)
+		err := Output(exampleProfilePath, "", exampleReport)
 		assert.NotNil(t, err)
 
 		monkey.Unpatch(os.Create)
@@ -170,28 +172,28 @@ func TestHTMLOutput(t *testing.T) {
 
 	t.Run("with failure to start the browser", func(_t *testing.T) {
 		fmtFprintfCalled := false
-		monkey.Patch(startBrowser, func(url string, os string) bool { return false })
+		monkey.Patch(StartBrowser, func(url string, os string) bool { return false })
 		monkey.Patch(fmt.Fprintf, func(w io.Writer, format string, a ...interface{}) (n int, err error) {
 			fmtFprintfCalled = true
 			return 0, nil
 		})
 
 		exampleProfilePath := simpleCountPath
-		err := htmlOutput(exampleProfilePath, "", exampleReport)
+		err := Output(exampleProfilePath, "", exampleReport)
 		assert.Nil(t, err)
 		assert.True(t, fmtFprintfCalled)
 
 		monkey.Unpatch(fmt.Fprintf)
-		monkey.Unpatch(startBrowser)
+		monkey.Unpatch(StartBrowser)
 	})
 
 	t.Run("simple count", func(_t *testing.T) {
 		exampleProfilePath := simpleCountPath
 		tmpFile := buildExampleFileAbsPath(t, "temp.html")
 
-		err := htmlOutput(exampleProfilePath, tmpFile, exampleReport)
+		err := Output(exampleProfilePath, tmpFile, exampleReport)
 		if err != nil {
-			log.Println("htmlOutput should not return an error")
+			log.Println("Output should not return an error")
 			t.FailNow()
 		}
 
@@ -331,9 +333,9 @@ func wrapper() <span class="cov1" title="1">{
 		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/simple_set.coverprofile")
 		tmpFile := buildExampleFileAbsPath(t, "temp.html")
 
-		err := htmlOutput(exampleProfilePath, tmpFile, exampleReport)
+		err := Output(exampleProfilePath, tmpFile, exampleReport)
 		if err != nil {
-			log.Println("htmlOutput should not return an error")
+			log.Println("Output should not return an error")
 			t.FailNow()
 		}
 
@@ -463,11 +465,11 @@ func wrapper() <span class="cov8" title="1">{
 
 func TestHTMLGen(t *testing.T) {
 	t.Run("simple", func(_t *testing.T) {
-		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "simple", true))
-		exampleReport := blanketReport{
+		simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "simple", true))
+		exampleReport := &analysis.BlanketReport{
 			Called:   set.New("a", "c", "wrapper"),
 			Declared: set.New("a", "b", "c", "wrapper"),
-			DeclaredDetails: map[string]blanketFunc{
+			DeclaredDetails: map[string]analysis.BlanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,
@@ -602,11 +604,11 @@ func wrapper() <span class="cov1" title="1">{
 	})
 
 	t.Run("with conditionals", func(_t *testing.T) {
-		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "conditionals", true))
-		exampleReport := blanketReport{
+		simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "conditionals", true))
+		exampleReport := &analysis.BlanketReport{
 			Called:   set.New("a", "c", "wrapper"),
 			Declared: set.New("a", "b", "c", "wrapper"),
-			DeclaredDetails: map[string]blanketFunc{
+			DeclaredDetails: map[string]analysis.BlanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,
@@ -744,11 +746,11 @@ func wrapper() <span class="cov8" title="1">{
 	})
 
 	t.Run("with executed conditionals", func(_t *testing.T) {
-		simpleMainPath := fmt.Sprintf("%s/main.go", buildExamplePackagePath(t, "executed_conditionals", true))
-		exampleReport := blanketReport{
+		simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "executed_conditionals", true))
+		exampleReport := &analysis.BlanketReport{
 			Called:   set.New("b", "c", "wrapper"),
 			Declared: set.New("a", "b", "c", "wrapper"),
-			DeclaredDetails: map[string]blanketFunc{
+			DeclaredDetails: map[string]analysis.BlanketFunc{
 				"a": {
 					Name:     "a",
 					Filename: simpleMainPath,
@@ -929,7 +931,7 @@ func TestStartBrowser(t *testing.T) {
 			return fakeCommand
 		})
 
-		startBrowser(testURL, "darwin")
+		StartBrowser(testURL, "darwin")
 		assert.True(t, execCommandCalled)
 		monkey.Unpatch(exec.Command)
 	})
@@ -944,7 +946,7 @@ func TestStartBrowser(t *testing.T) {
 			return fakeCommand
 		})
 
-		startBrowser(testURL, "windows")
+		StartBrowser(testURL, "windows")
 		assert.True(t, execCommandCalled)
 		monkey.Unpatch(exec.Command)
 	})
@@ -958,7 +960,7 @@ func TestStartBrowser(t *testing.T) {
 			return fakeCommand
 		})
 
-		startBrowser(testURL, "linux")
+		StartBrowser(testURL, "linux")
 		assert.True(t, execCommandCalled)
 		monkey.Unpatch(exec.Command)
 	})

@@ -1,4 +1,4 @@
-package main
+package analysis
 
 import (
 	"go/token"
@@ -9,18 +9,18 @@ import (
 
 func TestBlanketDetailsMethods(t *testing.T) {
 	arbitraryInstance := blanketDetails{
-		blanketFunc{
+		BlanketFunc{
 			Filename: "a",
 			Name:     "One",
 		},
-		blanketFunc{
+		BlanketFunc{
 			Filename: "b",
 			Name:     "Two",
 			DeclPos: token.Position{
 				Line: 1,
 			},
 		},
-		blanketFunc{
+		BlanketFunc{
 			Filename: "b",
 			Name:     "Three",
 			DeclPos: token.Position{
@@ -41,18 +41,18 @@ func TestBlanketDetailsMethods(t *testing.T) {
 
 	t.Run(".Swap()", func(_t *testing.T) {
 		expected := blanketDetails{
-			blanketFunc{
+			BlanketFunc{
 				Filename: "b",
 				Name:     "Two",
 				DeclPos: token.Position{
 					Line: 1,
 				},
 			},
-			blanketFunc{
+			BlanketFunc{
 				Filename: "a",
 				Name:     "One",
 			},
-			blanketFunc{
+			BlanketFunc{
 				Filename: "b",
 				Name:     "Three",
 				DeclPos: token.Position{

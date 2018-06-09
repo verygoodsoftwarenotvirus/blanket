@@ -1,4 +1,4 @@
-package main
+package analysis
 
 import (
 	"go/token"
@@ -10,24 +10,25 @@ type blanketOutput struct {
 	DeclaredCount             int                      `json:"declared"`
 	CalledCount               int                      `json:"called"`
 	Score                     int                      `json:"score"`
-	Details                   map[string][]blanketFunc `json:"-"`
+	Details                   map[string][]BlanketFunc `json:"-"`
 	LongestFunctionNameLength int                      `json:"-"`
 }
 
-type blanketReport struct {
-	DeclaredDetails map[string]blanketFunc
+type BlanketReport struct {
+	DeclaredDetails map[string]BlanketFunc
 	Called          *set.Set
 	Declared        *set.Set
 }
 
-type blanketDetails []blanketFunc
-type blanketFunc struct {
+type BlanketFunc struct {
 	Name      string
 	Filename  string
 	DeclPos   token.Position
 	RBracePos token.Position
 	LBracePos token.Position
 }
+
+type blanketDetails []BlanketFunc
 
 func (td blanketDetails) Len() int {
 	return len(td)

@@ -1,4 +1,4 @@
-package main
+package analysis
 
 import (
 	"fmt"
@@ -7,12 +7,25 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fatih/set"
+	"github.com/pkg/errors"
 )
 
-func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+type analyzer struct {
+	fileset                 *token.FileSet
+	debug                   bool
+	declaredFuncInfo        map[string]BlanketFunc
+	calledFuncs             *set.Set
+	helperFunctionReturnMap map[string][]string
+	nameToTypeMap           map[string]string
+	latestReport            *BlanketReport
+}
+
+func (a *analyzer) parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	// FIXME: iterate over in.Args to see if there are function calls
 	switch f := in.(type) {
 	case *ast.Ident:
@@ -29,35 +42,35 @@ func parseExpr(in ast.Expr, nameToTypeMap map[string]string, helperFunctionRetur
 			}
 		}
 	case *ast.FuncLit:
-		parseFuncLit(f, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseFuncLit(f, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
-func parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
-	for _, a := range in.Args {
-		switch at := a.(type) {
+func (a *analyzer) parseCallExpr(in *ast.CallExpr, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+	for _, arg := range in.Args {
+		switch at := arg.(type) {
 		// case *ast.Ident:
 		case *ast.CallExpr:
-			parseCallExpr(at, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseCallExpr(at, nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.FuncLit:
-			parseFuncLit(at, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseFuncLit(at, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
-	parseExpr(in.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+	a.parseExpr(in.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 }
 
 // parseUnaryExpr parses Unary expressions. From the go/ast docs:
 //      A UnaryExpr node represents a unary expression. Unary "*" expressions are represented via StarExpr nodes.
 // (handles declarations like `callExpr := &ast.UnaryExpr{}` or `callExpr := ast.UnaryExpr{}`)
-func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	if cl, ok := in.X.(*ast.CompositeLit); ok {
 		for _, e := range cl.Elts {
 			switch et := e.(type) {
 			case *ast.CallExpr:
-				parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+				a.parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 			case *ast.KeyValueExpr:
 				if vt, ok := et.Value.(*ast.CallExpr); ok {
-					parseCallExpr(vt, nameToTypeMap, helperFunctionReturnMap, out)
+					a.parseCallExpr(vt, nameToTypeMap, helperFunctionReturnMap, out)
 				}
 			}
 		}
@@ -73,7 +86,7 @@ func parseUnaryExpr(in *ast.UnaryExpr, varName string, nameToTypeMap map[string]
 // parseDeclStmt parses declaration statments. From the go/ast docs:
 // 		A DeclStmt node represents a declaration in a statement list.
 // DeclStmts come from function bodies, GenDecls come from package-wide const or var declarations
-func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
+func (a *analyzer) parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
 	if gd, ok := in.Decl.(*ast.GenDecl); ok {
 		if len(gd.Specs) > 0 {
 			if s, ok := gd.Specs[0].(*ast.ValueSpec); ok {
@@ -93,16 +106,16 @@ func parseDeclStmt(in *ast.DeclStmt, nameToTypeMap map[string]string) {
 
 // parseExprStmt parses expression statements. From the go/ast docs:
 // 		An ExprStmt node represents a (stand-alone) expression in a statement list.
-func parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseExprStmt(in *ast.ExprStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	if c, ok := in.X.(*ast.CallExpr); ok {
-		parseCallExpr(c, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseCallExpr(c, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
-func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, e := range in.Elts {
 		if et, ok := e.(*ast.CallExpr); ok {
-			parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseExpr(et.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
 
@@ -116,7 +129,7 @@ func parseCompositeLit(in *ast.CompositeLit, varName string, nameToTypeMap map[s
 
 // parseGenDecl handles GenDecl nodes. From the go/ast docs:
 //     A GenDecl node (generic declaration node) represents an import, constant, type or variable declaration.
-func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
+func (a *analyzer) parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 	for _, spec := range in.Specs {
 		if global, ok := spec.(*ast.ValueSpec); ok {
 			if len(global.Names) > 0 {
@@ -135,7 +148,7 @@ func parseGenDecl(in *ast.GenDecl, nameToTypeMap map[string]string) {
 // parseFuncDecl parses function declarations. From the go/ast docs:
 //		A FuncDecl node represents a function declaration.
 // the main purpose of this is to parse functions that are declared in non-test go files.
-func parseFuncDecl(f *ast.FuncDecl) string {
+func (a *analyzer) parseFuncDecl(f *ast.FuncDecl) string {
 	functionName := f.Name.Name // "Avoid Stutter" lol
 	var parentName string
 	if f.Recv != nil {
@@ -160,7 +173,7 @@ func parseFuncDecl(f *ast.FuncDecl) string {
 
 // parseAssignStmt handles AssignStmt nodes. From the go/ast docs:
 //    An AssignStmt node represents an assignment or a short variable declaration
-func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	leftHandSide := []string{}
 	for i := range in.Lhs {
 		if l, ok := in.Lhs[i].(*ast.Ident); ok {
@@ -172,14 +185,14 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 	for j := range in.Rhs {
 		switch t := in.Rhs[j].(type) {
 		case *ast.FuncLit:
-			parseFuncLit(t, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseFuncLit(t, nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.UnaryExpr:
-			parseUnaryExpr(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseUnaryExpr(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
 		case *ast.CompositeLit:
 			if len(leftHandSide) > j {
-				parseCompositeLit(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
+				a.parseCompositeLit(t, leftHandSide[j], nameToTypeMap, helperFunctionReturnMap, out)
 			} else {
-				parseCompositeLit(t, "", nameToTypeMap, helperFunctionReturnMap, out)
+				a.parseCompositeLit(t, "", nameToTypeMap, helperFunctionReturnMap, out)
 			}
 		case *ast.CallExpr:
 			var functionName string
@@ -195,12 +208,12 @@ func parseAssignStmt(in *ast.AssignStmt, nameToTypeMap map[string]string, helper
 				}
 			}
 
-			parseCallExpr(t, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseCallExpr(t, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
 }
 
-func parseHelperSelectorExpr(in *ast.SelectorExpr, functionName string, helperFunctionReturnMap map[string][]string) {
+func (a *analyzer) parseHelperSelectorExpr(in *ast.SelectorExpr, functionName string, helperFunctionReturnMap map[string][]string) {
 	if pkg, ok := in.X.(*ast.Ident); ok {
 		pkgName := pkg.Name
 		pkgStruct := in.Sel.Name
@@ -208,19 +221,19 @@ func parseHelperSelectorExpr(in *ast.SelectorExpr, functionName string, helperFu
 	}
 }
 
-func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	functionName := in.Name.Name
 	if in.Type.Results != nil {
 		for _, r := range in.Type.Results.List {
 			switch rt := r.Type.(type) {
 			case *ast.SelectorExpr:
-				parseHelperSelectorExpr(rt, functionName, helperFunctionReturnMap)
+				a.parseHelperSelectorExpr(rt, functionName, helperFunctionReturnMap)
 			case *ast.StarExpr:
 				switch x := rt.X.(type) {
 				case *ast.Ident:
 					helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], x.Name)
 				case *ast.SelectorExpr:
-					parseHelperSelectorExpr(x, functionName, helperFunctionReturnMap)
+					a.parseHelperSelectorExpr(x, functionName, helperFunctionReturnMap)
 				}
 			case *ast.Ident:
 				helperFunctionReturnMap[functionName] = append(helperFunctionReturnMap[functionName], rt.Name)
@@ -232,54 +245,54 @@ func parseHelperFunction(in *ast.FuncDecl, helperFunctionReturnMap map[string][]
 // parseFuncLit parses a function literal. From the go/ast docs:
 // 		A FuncLit node represents a function literal.
 // FuncLits have bodies that we basically need to explore the same way that we explore a normal function.
-func parseFuncLit(in *ast.FuncLit, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseFuncLit(in *ast.FuncLit, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, le := range in.Body.List {
-		parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
-func parseReturnStmt(in *ast.ReturnStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseReturnStmt(in *ast.ReturnStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, x := range in.Results {
 		if y, ok := x.(*ast.CallExpr); ok {
-			parseExpr(y.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseExpr(y.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	}
 }
 
-func parseSelectStmt(in *ast.SelectStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseSelectStmt(in *ast.SelectStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, x := range in.Body.List {
 		if y, ok := x.(*ast.CommClause); ok {
 			for _, z := range y.Body {
-				parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
+				a.parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
 			}
 		}
 	}
 }
 
 // parseSendStmt parses a send statement. (<-)
-func parseSendStmt(in *ast.SendStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseSendStmt(in *ast.SendStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	if n, ok := in.Value.(*ast.CallExpr); ok {
-		parseCallExpr(n, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseCallExpr(n, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
-func parseSwitchStmt(in *ast.SwitchStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseSwitchStmt(in *ast.SwitchStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, x := range in.Body.List {
 		if y, ok := x.(*ast.CaseClause); ok {
 			for _, z := range y.Body {
-				parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
+				a.parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
 			}
 		}
 	}
 }
 
 // parseTypeSwitchStmt parses
-func parseTypeSwitchStmt(in *ast.TypeSwitchStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseTypeSwitchStmt(in *ast.TypeSwitchStmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	if in.Body != nil {
 		for _, x := range in.Body.List {
 			if y, ok := x.(*ast.CaseClause); ok {
 				for _, z := range y.Body {
-					parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
+					a.parseStmt(z, nameToTypeMap, helperFunctionReturnMap, out)
 				}
 			}
 		}
@@ -296,52 +309,52 @@ func parseTypeSwitchStmt(in *ast.TypeSwitchStmt, nameToTypeMap map[string]string
 //			EmptyStmt
 //			IncDeclStmt
 //			LabeledStmt
-func parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) parseStmt(in ast.Stmt, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	switch e := in.(type) {
 	case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
-		parseAssignStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseAssignStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	// NOTE: even though RangeStmt/IfStmt/ForStmt are handled identically, Go will (rightfully) complain when trying
 	// to use a multiple case statement (i.e. `case *ast.RangeStmt, *ast.IfStmt`), so we're doing it this way.
 	case *ast.RangeStmt:
 		for _, x := range e.Body.List {
-			parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	case *ast.IfStmt:
 		for _, x := range e.Body.List {
-			parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	case *ast.ForStmt:
 		for _, x := range e.Body.List {
-			parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
+			a.parseStmt(x, nameToTypeMap, helperFunctionReturnMap, out)
 		}
 	case *ast.DeclStmt:
-		parseDeclStmt(e, nameToTypeMap)
+		a.parseDeclStmt(e, nameToTypeMap)
 	case *ast.ExprStmt:
-		parseExprStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseExprStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.DeferStmt:
-		parseExpr(e.Call.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseExpr(e.Call.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.GoStmt:
-		parseExpr(e.Call.Fun, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseExpr(e.Call.Fun, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.ReturnStmt:
-		parseReturnStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseReturnStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.SelectStmt:
-		parseSelectStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseSelectStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.SendStmt:
-		parseSendStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseSendStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.SwitchStmt:
-		parseSwitchStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseSwitchStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	case *ast.TypeSwitchStmt:
-		parseTypeSwitchStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
+		a.parseTypeSwitchStmt(e, nameToTypeMap, helperFunctionReturnMap, out)
 	}
 }
 
-func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]blanketFunc) {
+func (a *analyzer) getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails map[string]BlanketFunc) {
 	for _, d := range in.Decls {
 		if f, ok := d.(*ast.FuncDecl); ok {
 			declPos := fileset.Position(f.Type.Func)
-			functionName := parseFuncDecl(f)
+			functionName := a.parseFuncDecl(f)
 
-			tf := blanketFunc{
+			tf := BlanketFunc{
 				Name:     functionName,
 				Filename: declPos.Filename,
 				DeclPos:  declPos,
@@ -356,33 +369,33 @@ func getDeclaredNames(in *ast.File, fileset *token.FileSet, declaredFuncDetails 
 	}
 }
 
-func getCalledNames(in *ast.File, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) getCalledNames(in *ast.File, nameToTypeMap map[string]string, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, d := range in.Decls {
 		switch n := d.(type) {
 		case *ast.GenDecl:
-			parseGenDecl(n, nameToTypeMap)
+			a.parseGenDecl(n, nameToTypeMap)
 		case *ast.FuncDecl:
 			if _, ok := helperFunctionReturnMap[n.Name.Name]; !ok && n.Body != nil {
 				for _, le := range n.Body.List {
-					parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
+					a.parseStmt(le, nameToTypeMap, helperFunctionReturnMap, out)
 				}
 			}
 		}
 	}
 }
 
-func findHelperFuncs(in *ast.File, helperFunctionReturnMap map[string][]string, out *set.Set) {
+func (a *analyzer) findHelperFuncs(in *ast.File, helperFunctionReturnMap map[string][]string, out *set.Set) {
 	for _, d := range in.Decls {
 		if n, ok := d.(*ast.FuncDecl); ok {
 			functionName := in.Name.Name
 			if !strings.HasPrefix(functionName, "Test") {
-				parseHelperFunction(n, helperFunctionReturnMap, out)
+				a.parseHelperFunction(n, helperFunctionReturnMap, out)
 			}
 		}
 	}
 }
 
-func analyze(analyzePackage string) blanketReport {
+func (a *analyzer) Analyze(analyzePackage string) (*BlanketReport, error) {
 	gopath := os.Getenv("GOPATH")
 
 	pkgDir := strings.Join([]string{gopath, "src", analyzePackage}, "/")
@@ -390,29 +403,29 @@ func analyze(analyzePackage string) blanketReport {
 		var err error
 		pkgDir, err = os.Getwd()
 		if err != nil {
-			log.Fatalf("error encountered getting current working directory: %v", err)
+			return nil, errors.Wrap(err, "getting current working directory")
 		}
 	}
 
-	if debug {
+	if a.debug {
 		log.Printf("package directory: %s", pkgDir)
 	}
 
 	_, err := os.Stat(pkgDir)
 	if os.IsNotExist(err) {
-		log.Fatalf("packageDir doesn't exist: %s", pkgDir)
+		return nil, fmt.Errorf("packageDir doesn't exist: %s", pkgDir)
 	}
 
-	astPkg, err := parser.ParseDir(fileset, pkgDir, nil, parser.AllErrors)
+	astPkg, err := parser.ParseDir(a.fileset, pkgDir, nil, parser.AllErrors)
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "parsing package directory")
 	}
 
 	if len(astPkg) == 0 || astPkg == nil {
-		log.Fatal("no go files found!")
+		return nil, errors.New("no go files found!")
 	}
 
-	declaredFuncInfo := map[string]blanketFunc{}
+	declaredFuncInfo := map[string]BlanketFunc{}
 	calledFuncs := set.New("init")
 	helperFunctionReturnMap := map[string][]string{}
 	nameToTypeMap := map[string]string{}
@@ -421,7 +434,7 @@ func analyze(analyzePackage string) blanketReport {
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
 			if strings.HasSuffix(name, "_test.go") {
-				findHelperFuncs(f, helperFunctionReturnMap, calledFuncs)
+				a.findHelperFuncs(f, helperFunctionReturnMap, calledFuncs)
 			}
 		}
 	}
@@ -430,7 +443,7 @@ func analyze(analyzePackage string) blanketReport {
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
 			if !strings.HasSuffix(name, "_test.go") {
-				getDeclaredNames(f, fileset, declaredFuncInfo)
+				a.getDeclaredNames(f, a.fileset, declaredFuncInfo)
 			}
 		}
 	}
@@ -439,7 +452,7 @@ func analyze(analyzePackage string) blanketReport {
 	for _, pkg := range astPkg {
 		for name, f := range pkg.Files {
 			if strings.HasSuffix(name, "_test.go") {
-				getCalledNames(f, nameToTypeMap, helperFunctionReturnMap, calledFuncs)
+				a.getCalledNames(f, nameToTypeMap, helperFunctionReturnMap, calledFuncs)
 			}
 		}
 	}
@@ -453,10 +466,54 @@ func analyze(analyzePackage string) blanketReport {
 		calledFuncs.Remove(x)
 	}
 
-	tr := blanketReport{
+	tr := &BlanketReport{
 		DeclaredDetails: declaredFuncInfo,
 		Declared:        declaredFuncs,
 		Called:          calledFuncs,
 	}
-	return tr
+	return tr, nil
+}
+
+// NewAnalyzer creates a new instance of an Analyzer with some default values. It should be the only way an Analyzer is instantiated
+func NewAnalyzer() *analyzer {
+	return &analyzer{
+		fileset:                 token.NewFileSet(),
+		declaredFuncInfo:        map[string]BlanketFunc{},
+		calledFuncs:             set.New("init"),
+		helperFunctionReturnMap: map[string][]string{},
+		nameToTypeMap:           map[string]string{},
+	}
+}
+
+func (a *analyzer) GenerateDiffReport() *blanketOutput {
+	if a.latestReport == nil {
+		return nil
+	}
+
+	diff := set.StringSlice(set.Difference(a.latestReport.Declared, a.latestReport.Called))
+	declaredFuncCount := a.latestReport.Declared.Size()
+	calledFuncCount := a.latestReport.Called.Size()
+	longestFunctionNameLength := 0
+	missingFuncs := &blanketDetails{}
+	for _, s := range diff {
+		if utf8.RuneCountInString(s) > longestFunctionNameLength {
+			longestFunctionNameLength = len(s)
+		}
+		*missingFuncs = append(*missingFuncs, a.declaredFuncInfo[s])
+	}
+
+	sort.Sort(missingFuncs)
+	byFilename := map[string][]BlanketFunc{}
+	for _, tf := range *missingFuncs {
+		byFilename[tf.Filename] = append(byFilename[tf.Filename], tf)
+	}
+	score := float64(calledFuncCount) / float64(declaredFuncCount)
+
+	return &blanketOutput{
+		DeclaredCount:             declaredFuncCount,
+		CalledCount:               calledFuncCount,
+		Score:                     int(score * 100),
+		Details:                   byFilename,
+		LongestFunctionNameLength: longestFunctionNameLength,
+	}
 }
