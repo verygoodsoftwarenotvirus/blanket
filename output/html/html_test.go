@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -30,14 +29,8 @@ import (
 //                                                    //
 ////////////////////////////////////////////////////////
 
-func buildExampleFileAbsPath(t *testing.T, filename string) string {
-	t.Helper()
-	abspath, err := filepath.Abs(filename)
-	if err != nil {
-		log.Println("encountered error getting the current working directory")
-		t.FailNow()
-	}
-	return abspath
+func buildExampleFileAbsPath(filename string) string {
+	return util.BuildExampleFilePath(filename)
 }
 
 ////////////////////////////////////////////////////////
@@ -60,7 +53,7 @@ func TestFindFile(t *testing.T) {
 
 func TestHTMLOutput(t *testing.T) {
 	simpleMainPath := fmt.Sprintf("%s/main.go", util.BuildExamplePackagePath(t, "simple", true))
-	simpleCountPath := buildExampleFileAbsPath(t, "example_files/simple_count.coverprofile")
+	simpleCountPath := buildExampleFileAbsPath("simple_count.coverprofile")
 	exampleReport := &analysis.BlanketReport{
 		Called:   set.New("a", "c", "wrapper"),
 		Declared: set.New("a", "b", "c", "wrapper"),
@@ -102,7 +95,7 @@ func TestHTMLOutput(t *testing.T) {
 	})
 
 	t.Run("with failure to find src file", func(_t *testing.T) {
-		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/nonexistent_file.coverprofile")
+		exampleProfilePath := buildExampleFileAbsPath("nonexistent_file.coverprofile")
 		err := Output(exampleProfilePath, "", &analysis.BlanketReport{})
 		assert.NotNil(t, err)
 	})
@@ -189,11 +182,11 @@ func TestHTMLOutput(t *testing.T) {
 
 	t.Run("simple count", func(_t *testing.T) {
 		exampleProfilePath := simpleCountPath
-		tmpFile := buildExampleFileAbsPath(t, "temp.html")
+		tmpFile := buildExampleFileAbsPath("temp.html")
 
 		err := Output(exampleProfilePath, tmpFile, exampleReport)
 		if err != nil {
-			log.Println("Output should not return an error")
+			log.Printf("Output should not return an error: %v\n", err)
 			t.FailNow()
 		}
 
@@ -330,8 +323,8 @@ func wrapper() <span class="cov1" title="1">{
 	})
 
 	t.Run("simple set", func(_t *testing.T) {
-		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/simple_set.coverprofile")
-		tmpFile := buildExampleFileAbsPath(t, "temp.html")
+		exampleProfilePath := buildExampleFileAbsPath("simple_set.coverprofile")
+		tmpFile := buildExampleFileAbsPath("temp.html")
 
 		err := Output(exampleProfilePath, tmpFile, exampleReport)
 		if err != nil {
@@ -561,7 +554,7 @@ func TestHTMLGen(t *testing.T) {
 			},
 		}
 
-		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/simple_count.coverprofile")
+		exampleProfilePath := buildExampleFileAbsPath("simple_count.coverprofile")
 		profiles, err := cover.ParseProfiles(exampleProfilePath)
 		if err != nil {
 			log.Printf("error reading profile: %s\n", simpleMainPath)
@@ -700,7 +693,7 @@ func wrapper() <span class="cov1" title="1">{
 			},
 		}
 
-		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/conditionals.coverprofile")
+		exampleProfilePath := buildExampleFileAbsPath("conditionals.coverprofile")
 		profiles, err := cover.ParseProfiles(exampleProfilePath)
 		if err != nil {
 			log.Printf("error reading profile: %s\n", simpleMainPath)
@@ -842,7 +835,7 @@ func wrapper() <span class="cov8" title="1">{
 			},
 		}
 
-		exampleProfilePath := buildExampleFileAbsPath(t, "example_files/executed_conditionals.coverprofile")
+		exampleProfilePath := buildExampleFileAbsPath("executed_conditionals.coverprofile")
 		profiles, err := cover.ParseProfiles(exampleProfilePath)
 		if err != nil {
 			log.Printf("error reading profile: %s\n", simpleMainPath)

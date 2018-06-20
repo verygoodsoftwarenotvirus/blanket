@@ -21,7 +21,7 @@ blankoverage: blanket
 introspect: blanket
 	# for pkg in $(TESTABLE_PACKAGES); do \
 	# 	set -e; \
-	# 	blanket analyze --package=$$pkg --fail-on-found \
+	# 	./blanket analyze --package=$$pkg --fail-on-found \
 	# done
 
 	./blanket analyze --fail-on-found --package=github.com/verygoodsoftwarenotvirus/blanket/cmd/blanket
@@ -41,14 +41,7 @@ revendor:
 
 .PHONY: tests
 tests:
-	# go test -v -cover -race github.com/verygoodsoftwarenotvirus/blanket/analysis     #
-	go test -v -cover -race github.com/verygoodsoftwarenotvirus/blanket/cmd/blanket    # passes
-	go test -v -cover -race github.com/verygoodsoftwarenotvirus/blanket/lib/util       # passes
-	go test -v -cover -race github.com/verygoodsoftwarenotvirus/blanket/output/html  #
-
-	###########################
-
-	# go test -v -cover -race $(shell go list github.com/verygoodsoftwarenotvirus/blanket/... | grep -v -e "example_packages")
+	set -ex; go test -v -cover -race $(shell go list github.com/verygoodsoftwarenotvirus/blanket/... | grep -v -e "example_packages")
 
 .PHONY: coverage
 coverage:

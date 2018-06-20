@@ -20,3 +20,8 @@ func BuildExamplePackagePath(t *testing.T, packageName string, abs bool) string 
 	}
 	return fmt.Sprintf("github.com/verygoodsoftwarenotvirus/blanket/example_packages/%s", packageName)
 }
+
+func BuildExampleFilePath(filename string) string {
+	gopath := os.Getenv("GOPATH")
+	return fmt.Sprintf("%s/src/github.com/verygoodsoftwarenotvirus/blanket/example_files/%s", gopath, filename)
+}

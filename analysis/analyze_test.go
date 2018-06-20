@@ -1398,7 +1398,10 @@ func TestGenerateDiffReport(t *testing.T) {
 		},
 	}
 	analyzer.latestReport = exampleReport
+	analyzer.declaredFuncInfo = exampleReport.DeclaredDetails
 	actual := analyzer.GenerateDiffReport()
+
+	print()
 
 	assert.Equal(t, expected, actual, "expected and actual diff reports should match.")
 }
