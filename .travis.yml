@@ -8,7 +8,7 @@ go:
 before_install:
   # install goveralls
   - go get github.com/mattn/goveralls
-  - go install
+  - go install github.com/verygoodsoftwarenotvirus/blanket
 
 script:
   # unit tests
