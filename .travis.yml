@@ -8,6 +8,8 @@ go:
 before_install:
   # install goveralls
   - go get github.com/mattn/goveralls
+  - pwd
+  - ls -Al
   - go install github.com/verygoodsoftwarenotvirus/blanket/cmd/blanket
 
 script:
