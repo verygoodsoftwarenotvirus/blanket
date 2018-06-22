@@ -166,13 +166,13 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	fileset = token.NewFileSet()
 
-	rootCmd.AddCommand(analyzeCmd)
 	analyzeCmd.Flags().BoolVarP(&outputAsJSON, "json", "j", false, "Render results as a JSON blob")
 	analyzeCmd.Flags().BoolVarP(&failOnFound, "fail-on-found", "F", false, "Call os.Exit(1) when functions without direct tests are found")
 	analyzeCmd.Flags().StringVarP(&analyzePackage, "package", "p", ".", "Package to run analyze on. Defaults to the current directory.")
+	rootCmd.AddCommand(analyzeCmd)
 
-	rootCmd.AddCommand(coverCmd)
 	coverCmd.Flags().StringVarP(&coverprofile, "html", "c", "", "coverprofile to generate HTML for.")
+	rootCmd.AddCommand(coverCmd)
 }
 
 func main() {
