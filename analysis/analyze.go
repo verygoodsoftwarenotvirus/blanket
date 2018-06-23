@@ -30,9 +30,7 @@ func (a *analyzer) parseExpr(in ast.Expr) {
 	switch f := in.(type) {
 	case *ast.Ident:
 		functionName := f.Name
-		if _, ok := a.helperFunctionReturnMap[functionName]; !ok {
-			a.calledFuncs.Add(functionName)
-		}
+		a.calledFuncs.Add(functionName)
 	case *ast.SelectorExpr:
 		if x, ok := f.X.(*ast.Ident); ok {
 			structVarName := x.Name
@@ -56,6 +54,7 @@ func (a *analyzer) parseCallExpr(in *ast.CallExpr) {
 			a.parseFuncLit(at)
 		}
 	}
+
 	a.parseExpr(in.Fun)
 }
 
@@ -201,13 +200,13 @@ func (a *analyzer) parseAssignStmt(in *ast.AssignStmt) {
 			case *ast.SelectorExpr:
 				functionName = funcInfo.Sel.Name
 			}
+
+			a.parseCallExpr(t)
 			if _, ok := a.helperFunctionReturnMap[functionName]; ok {
 				for i, thing := range leftHandSide {
 					a.nameToTypeMap[thing] = a.helperFunctionReturnMap[functionName][i]
 				}
 			}
-
-			a.parseCallExpr(t)
 		}
 	}
 }
@@ -304,10 +303,10 @@ func (a *analyzer) parseTypeSwitchStmt(in *ast.TypeSwitchStmt) {
 //		BadStmt - we only parse valid code
 //		BlockStmt (sort of, we iterate over these in the form of `x.Body.List`)
 //		these are simply unnecessary:
-//			BranchStmt
-//			EmptyStmt
-//			IncDeclStmt
-//			LabeledStmt
+//			BranchStmt  (if/else/case)
+//			EmptyStmt   ()
+//			IncDeclStmt (++/--)
+//			LabeledStmt (sorta-kinda-not-goto)
 func (a *analyzer) parseStmt(in ast.Stmt) {
 	switch e := in.(type) {
 	case *ast.AssignStmt: // handles things like `e := Example{}` (with or without &)
@@ -383,10 +382,15 @@ func (a *analyzer) getCalledNames(in *ast.File) {
 	}
 }
 
+// // DEBUG function useful occasionally for development purposes.
+// func (a *analyzer) getFullPositionInfo(p token.Pos) token.Position {
+// 	return a.fileset.Position(p)
+// }
+
 func (a *analyzer) findHelperFuncs(in *ast.File) {
 	for _, d := range in.Decls {
 		if n, ok := d.(*ast.FuncDecl); ok {
-			functionName := in.Name.Name
+			functionName := n.Name.Name
 			if !strings.HasPrefix(functionName, "Test") {
 				a.parseHelperFunction(n)
 			}
@@ -423,12 +427,18 @@ func (a *analyzer) Analyze(analyzePackage string) (*BlanketReport, error) {
 		return nil, errors.New("no go files found!")
 	}
 
+	// TODO: iterating over the fileset three times is unnecessary here.
+	// It could easily take only two iterations (by combining the first
+	// two) and honestly, it's definitely possible (with a level of effort
+	// I won't dare estimate) to perform it in one iteration. Thankfully
+	// all of this is already pretty fast, but that's no excuse. (I'm
+	// writing this comment amidst a large-ish refactor in the first
+	// place, or I'd write that instead of this).
+
 	// find all helper funcs first so we have an idea of what they are.
 	for _, pkg := range astPkg {
-		for name, f := range pkg.Files {
-			if strings.HasSuffix(name, "_test.go") {
-				a.findHelperFuncs(f)
-			}
+		for _, f := range pkg.Files {
+			a.findHelperFuncs(f)
 		}
 	}
 
@@ -459,15 +469,15 @@ func (a *analyzer) Analyze(analyzePackage string) (*BlanketReport, error) {
 		a.calledFuncs.Remove(x)
 	}
 
-	tr := &BlanketReport{
+	a.latestReport = &BlanketReport{
 		DeclaredDetails: a.declaredFuncInfo,
 		Declared:        declaredFuncs,
 		Called:          a.calledFuncs,
 	}
-	return tr, nil
+	return a.latestReport, nil
 }
 
-// NewAnalyzer creates a new instance of an Analyzer with some default values. It should be the only way an Analyzer is instantiated
+// NewAnalyzer creates a new instance of an Analyzer with some default values. It should be the only way an Analyzer is instantiated.
 func NewAnalyzer() *analyzer {
 	return &analyzer{
 		fileset:                 token.NewFileSet(),

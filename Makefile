@@ -27,7 +27,7 @@ introspect: blanket
 	./blanket analyze --fail-on-found --package=github.com/verygoodsoftwarenotvirus/blanket/cmd/blanket
 	./blanket analyze --fail-on-found --package=github.com/verygoodsoftwarenotvirus/blanket/lib/util
 	./blanket analyze --fail-on-found --package=github.com/verygoodsoftwarenotvirus/blanket/output/html
-	# ./blanket analyze --fail-on-found --package=github.com/verygoodsoftwarenotvirus/blanket/analysis
+	./blanket analyze --fail-on-found --package=github.com/verygoodsoftwarenotvirus/blanket/analysis
 
 .PHONY: vendor
 vendor:
