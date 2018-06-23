@@ -8,12 +8,13 @@ go:
 before_install:
   # install goveralls
   - go get github.com/mattn/goveralls
-  - go install
+  - pwd
+  - ls -Al
+  - go install github.com/verygoodsoftwarenotvirus/blanket/cmd/blanket
 
 script:
   # unit tests
-  - go test -v -race -coverprofile=coverage.out
-  - blanket analyze --fail-on-found
+  - make tests introspect
 
 after_success:
   # send coverage report to coveralls
