@@ -86,7 +86,7 @@ Additionally, you can use the `cover` command to visualize those functions by pa
 
 What `blanket` seeks to do is catch these sorts of things so that package maintainers can decide what the appropriate course of action is. If you're fine with it, that's cool. If you're not cool with it, then you know what needs to have tests added.
 
-You can also use `blanket` in your CI pipeline to decline PRs that would add functions that don't have direct unit tests. As a matter of fact, `blanket` does just that for itself! [Here](https://gitlab.com/verygoodsoftwarenotvirus/blanket/pull/9) is an example of such a scenario working on this very repository!
+You can also use `blanket` in your CI pipeline to decline PRs that would add functions that don't have direct unit tests. As a matter of fact, `blanket` does just that for itself! [Here](https://gitlab.com/verygoodsoftwarenotvirus/blanket/merge_requests/22) is an example of such a scenario working on this very repository!
 
 I think `blanket` could also be helpful for new developers looking to contribute towards a project. They can run `blanket` on the package and see if there are some functions they could easily add unit tests for, just to get their feet wet in a project.
 
