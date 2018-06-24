@@ -26,7 +26,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/verygoodsoftwarenotvirus/blanket/analysis"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/analysis"
 
 	"golang.org/x/tools/cover"
 )

@@ -8,7 +8,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/blanket/lib/util"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/lib/util"
 
 	"github.com/fatih/set"
 	"github.com/stretchr/testify/assert"

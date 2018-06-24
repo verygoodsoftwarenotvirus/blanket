@@ -15,3 +15,6 @@
 
 .idea/
 example_packages/temp
+devBlanket
+coverage.*
+coverage_report
