@@ -1,0 +1,44 @@
+stages:
+  - test-stage
+  - docker-publish
+
+before_script:
+  - mkdir -p /go/src/gitlab.com/verygoodsoftwarenotvirus/blanket
+  - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/verygoodsoftwarenotvirus/
+  - cd /go/src/gitlab.com/verygoodsoftwarenotvirus/blanket
+
+tests:
+  image: golang:latest
+  stage: test-stage
+  script:
+    - make tests introspect
+
+coverage:
+  image: golang:latest
+  stage: test-stage
+  script:
+    - make ci-coverage
+
+gitlabcr:
+  image: docker:stable
+  services:
+  - docker:dind
+  stage: docker-publish
+  script:
+    - docker login -u=gitlab-ci-token -p=$CI_JOB_TOKEN registry.gitlab.com
+    - docker build -t registry.gitlab.com/verygoodsoftwarenotvirus/blanket:latest .
+    - docker push registry.gitlab.com/verygoodsoftwarenotvirus/blanket:latest
+  only:
+    - master
+
+dockerhub:
+  image: docker:stable
+  services:
+  - docker:dind
+  stage: docker-publish
+  script:
+    - docker login -u="$DOCKERHUB_USERNAME" -p="$DOCKERHUB_PASSWORD" docker.io
+    - docker build -t docker.io/verygoodsoftwarenotvirus/blanket:latest .
+    - docker push docker.io/verygoodsoftwarenotvirus/blanket:latest
+  only:
+    - master

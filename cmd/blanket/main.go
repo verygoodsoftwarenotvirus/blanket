@@ -14,8 +14,8 @@ import (
 	"text/template"
 	"unicode/utf8"
 
-	"github.com/verygoodsoftwarenotvirus/blanket/analysis"
-	"github.com/verygoodsoftwarenotvirus/blanket/output/html"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/analysis"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/output/html"
 
 	"github.com/fatih/color"
 	"github.com/fatih/set"

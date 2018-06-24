@@ -1,9 +1,9 @@
 # build stage
 FROM golang:alpine AS build-stage
-WORKDIR /go/src/github.com/verygoodsoftwarenotvirus/blanket
+WORKDIR /go/src/gitlab.com/verygoodsoftwarenotvirus/blanket
 
 ADD . .
-RUN go build -o /blanket github.com/verygoodsoftwarenotvirus/blanket/cmd/blanket
+RUN go build -o /blanket gitlab.com/verygoodsoftwarenotvirus/blanket/cmd/blanket
 
 # final stage
 FROM alpine:latest

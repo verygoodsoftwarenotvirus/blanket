@@ -8,9 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/blanket/analysis"
-	"github.com/verygoodsoftwarenotvirus/blanket/lib/util"
-	"github.com/verygoodsoftwarenotvirus/blanket/output/html"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/analysis"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/lib/util"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/output/html"
 
 	"github.com/bouk/monkey"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +26,9 @@ func buildPathForExampleFiles(t *testing.T, filename string, abs bool) string {
 	t.Helper()
 	gopath := os.Getenv("GOPATH")
 	if abs {
-		return fmt.Sprintf("%s/src/github.com/verygoodsoftwarenotvirus/blanket/example_files/%s", gopath, filename)
+		return fmt.Sprintf("%s/src/gitlab.com/verygoodsoftwarenotvirus/blanket/example_files/%s", gopath, filename)
 	}
-	return fmt.Sprintf("github.com/verygoodsoftwarenotvirus/blanket/example_files/%s", filename)
+	return fmt.Sprintf("gitlab.com/verygoodsoftwarenotvirus/blanket/example_files/%s", filename)
 }
 
 ////////////////////////////////////////////////////////

@@ -14,8 +14,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/verygoodsoftwarenotvirus/blanket/analysis"
-	"github.com/verygoodsoftwarenotvirus/blanket/lib/util"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/analysis"
+	"gitlab.com/verygoodsoftwarenotvirus/blanket/lib/util"
 
 	"github.com/bouk/monkey"
 	"github.com/fatih/set"
@@ -247,7 +247,7 @@ func TestHTMLOutput(t *testing.T) {
 			<div id="nav">
 				<select id="files">
 
-				<option value="file0">github.com/verygoodsoftwarenotvirus/blanket/example_packages/simple/main.go (100.0%)</option>
+				<option value="file0">gitlab.com/verygoodsoftwarenotvirus/blanket/example_packages/simple/main.go (100.0%)</option>
 
 				</select>
 			</div>
@@ -389,7 +389,7 @@ func wrapper() <span class="cov1" title="1">{
 			<div id="nav">
 				<select id="files">
 
-				<option value="file0">github.com/verygoodsoftwarenotvirus/blanket/example_packages/simple/main.go (100.0%)</option>
+				<option value="file0">gitlab.com/verygoodsoftwarenotvirus/blanket/example_packages/simple/main.go (100.0%)</option>
 
 				</select>
 			</div>
