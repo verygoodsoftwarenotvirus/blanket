@@ -10,7 +10,9 @@
 
 If you don't want to install blanket locally, you can use the pre-built Docker image like so:
 
-    docker run -it --rm -v "$(pwd):/src/pkg" verygoodsoftwarenotvirus/blanket:latest analyze --package pkg
+    docker run -it --rm -v "$(pwd):/src/<pkg>" verygoodsoftwarenotvirus/blanket:latest analyze --package <pkg>
+
+Where `<pkg>` could be something like `gitlab.com/verygoodsoftwarenotvirus/blanket/analysis`. :)
 
 ## Purpose
 
